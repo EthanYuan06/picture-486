@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # 前端服务
+  frontend:
+    image: ethanyuan06/ethanyuan-repo:frontend-0.0.1
+    container_name: picture-486-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
+    networks:
+      - picture-network
+    restart: unless-stopped
+  # Spring Boot 应用
+  app:
+    image: ethanyuan06/ethanyuan-repo:backend-0.0.1
+    container_name: picture-486-backend
+    ports:
+      - "18124:8124"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - picture-network
+    restart: unless-stopped
+
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: picture-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: 486_picture
+    ports:
+      - "13306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 确保 init.sql 放在项目根目录
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - picture-network
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: picture-redis
+    ports:
+      - "16379:6379"
+    networks:
+      - picture-network
+    restart: unless-stopped
+
+  # RabbitMQ 消息队列
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: picture-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "15672:5672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - picture-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+
+networks:
+  picture-network:
+    driver: bridge

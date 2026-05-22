@@ -40,3 +40,4 @@ build/
 /sql/create_test_users_full.sql
 /jmeter/picture_list_page_vo_test.jmx
 /jmeter/picture_upload_concurrent_test.jmx
+/docker-compose.yml

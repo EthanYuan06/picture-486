@@ -43,6 +43,7 @@ create table if not exists picture
     picScale     double                             null comment '图片宽高比例',
     picFormat    varchar(32)                        null comment '图片格式',
     userId       bigint                             not null comment '创建用户 id',
+    spaceId      bigint                             null comment '空间 id（为空表示公共空间）',
     createTime   datetime default CURRENT_TIMESTAMP not null comment '创建时间',
     editTime     datetime default CURRENT_TIMESTAMP not null comment '编辑时间',
     updateTime   datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
@@ -56,7 +57,8 @@ create table if not exists picture
     INDEX idx_category (category),         -- 提升基于分类的查询性能
     INDEX idx_tags (tags),                 -- 提升基于标签的查询性能
     INDEX idx_userId (userId),              -- 提升基于用户 ID 的查询性能
-    INDEX idx_reviewStatus (reviewStatus)  -- 提升基于审核状态的查询性能
+    INDEX idx_reviewStatus (reviewStatus),  -- 提升基于审核状态的查询性能
+    INDEX idx_spaceId (spaceId)             -- 提升基于空间 ID 的查询性能
 ) comment '图片' collate = utf8mb4_unicode_ci;
 
 -- 空间表
@@ -83,13 +85,6 @@ create table if not exists space
     index idx_spaceLevel (spaceLevel) -- 提升按空间级别查询的效率
 ) comment '空间' collate = utf8mb4_unicode_ci;
 
--- 添加新列
-ALTER TABLE picture
-    ADD COLUMN spaceId  bigint  null comment '空间 id（为空表示公共空间）';
-
--- 创建索引
-CREATE INDEX idx_spaceId ON picture (spaceId);
-
 -- 空间用户关联表
 create table space_user
 (
@@ -113,18 +108,27 @@ create index idx_userId
     on space_user (userId);
 
 -- 系统消息表
-CREATE TABLE sys_message (
-                             id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                             receiveUserId BIGINT NOT NULL COMMENT '接收用户ID',
-                             title VARCHAR(255) NOT NULL COMMENT '消息标题',
-                             content VARCHAR(1000) COMMENT '消息内容',
-                             type TINYINT NOT NULL DEFAULT 0 COMMENT '消息类型（0-系统通知 1-用户消息等）',
-                             status TINYINT NOT NULL DEFAULT 0 COMMENT '消息状态（0-未读 1-已读 2-已删除）',
-                             createTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                             updateTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                             isDelete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除（0-未删除 1-已删除）',
-                             PRIMARY KEY (id),
-                             INDEX idx_receive_user_id (receiveUserId),
-                             INDEX idx_create_time (createTime),
-                             INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统消息表';
+create table sys_message
+(
+    id            bigint auto_increment comment '主键ID'
+        primary key,
+    receiveUserId bigint                              not null comment '接收用户ID',
+    title         varchar(255)                        not null comment '消息标题',
+    content       varchar(1000)                       null comment '消息内容',
+    type          tinyint   default 0                 not null comment '消息类型（0-系统通知 1-用户消息等）',
+    status        tinyint   default 0                 not null comment '消息状态（0-未读 1-已读 2-已删除）',
+    createTime    timestamp default CURRENT_TIMESTAMP null comment '创建时间',
+    updateTime    timestamp default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete      tinyint   default 0                 not null comment '是否删除（0-未删除 1-已删除）'
+)
+    comment '系统消息表' collate = utf8mb4_unicode_ci;
+
+create index idx_create_time
+    on sys_message (createTime);
+
+create index idx_receive_user_id
+    on sys_message (receiveUserId);
+
+create index idx_status
+    on sys_message (status);
+

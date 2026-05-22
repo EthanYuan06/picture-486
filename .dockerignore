@@ -8,7 +8,11 @@
 *.iml
 
 # Maven
-target/
+target/classes/
+target/test-classes/
+target/surefire-reports/
+target/maven-archiver/
+target/maven-status/
 !.mvn/wrapper/maven-wrapper.jar
 pom.xml.tag
 pom.xml.releaseBackup

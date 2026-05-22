@@ -1,1 +1,0 @@
-INSERT INTO `486_picture`.space_user (id, spaceId, userId, spaceRole, createTime, updateTime) VALUES (1, 2027610097329352705, 1985558297927299073, 'admin', '2026-02-28 13:01:33', '2026-02-28 13:01:33');

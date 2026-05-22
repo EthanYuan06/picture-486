@@ -1,5 +1,10 @@
+-- 设置字符集
+SET NAMES utf8mb4;
+
 -- 数据库创建
-create database if not exists 486_picture;
+create database if not exists 486_picture
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
 
 -- 数据库选择
 use 486_picture;

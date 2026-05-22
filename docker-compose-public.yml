@@ -7,6 +7,9 @@ services:
     container_name: picture-486-frontend
     ports:
       - "5173:5173"
+    environment:
+      - BACKEND_API_URL=http://picture-486-backend:8124/api/
+      - BACKEND_WS_URL=http://picture-486-backend:8124/api/ws/
     depends_on:
       - app
     networks:
@@ -38,6 +41,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: 486_picture
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
       - "13306:3306"
     volumes:

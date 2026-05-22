@@ -101,3 +101,50 @@ picture-486-backend/
 └── shared/             # 共享层 - 通用能力
 ```
 
+
+
+## 🚀快速启动
+
+1、克隆项目到本地
+
+```bash
+git clone https://github.com/EthanYuan06/picture-486.git
+```
+
+2、切换到项目根目录
+
+```
+cd picture-486
+```
+
+3、拉取镜像
+
+```
+docker pull ethanyuan06/ethanyuan-repo:backend-0.0.1
+docker pull ethanyuan06/ethanyuan-repo:frontend-0.0.1
+```
+
+4、执行docker-compose-public
+
+```
+docker-compose -f docker-compose-public.yml up -d
+```
+
+5、等待片刻，服务完全启动后访问项目
+
+访问地址：localhost:5173
+
+管理员测试账户：
+
+​	账号: nina1024
+
+​	密码: Nina1024
+
+
+
+
+
+
+
+
+

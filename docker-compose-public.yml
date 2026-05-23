@@ -23,6 +23,7 @@ services:
       - "18124:8124"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
     depends_on:
       mysql:
         condition: service_healthy

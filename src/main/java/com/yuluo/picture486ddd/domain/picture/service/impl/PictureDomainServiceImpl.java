@@ -11,20 +11,20 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuluo.picture486ddd.domain.picture.repository.PictureRepository;
 import com.yuluo.picture486ddd.domain.picture.service.PictureDomainService;
-import com.yuluo.picture486ddd.infrastructure.mq.ai_description.AiDescriptionTask;
+
 import com.yuluo.picture486ddd.application.service.UserApplicationService;
 import com.yuluo.picture486ddd.infrastructure.exception.BusinessException;
 import com.yuluo.picture486ddd.infrastructure.exception.ErrorCode;
 import com.yuluo.picture486ddd.infrastructure.exception.ThrowUtils;
 import com.yuluo.picture486ddd.infrastructure.api.CosManager;
-import com.yuluo.picture486ddd.infrastructure.api.aliyunai.client.AiDescriptionClient;
+
 import com.yuluo.picture486ddd.shared.manager.upload.FilePictureUpload;
 import com.yuluo.picture486ddd.shared.manager.upload.PictureUploadTemplate;
 import com.yuluo.picture486ddd.shared.manager.upload.UrlPictureUpload;
 import com.yuluo.picture486ddd.domain.picture.entity.Picture;
 import com.yuluo.picture486ddd.domain.space.entity.Space;
 import com.yuluo.picture486ddd.domain.user.entity.User;
-import com.yuluo.picture486ddd.domain.picture.valueobject.AiDescriptionTaskStatusEnum;
+
 import com.yuluo.picture486ddd.domain.picture.valueobject.PictureReviewStatusEnum;
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureVo;
 import com.yuluo.picture486ddd.interfaces.dto.picture.*;
@@ -87,12 +87,6 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
-
-    @Resource
-    private AiDescriptionClient aiDescriptionClient;
-
-    private static final long AI_DESCRIPTION_TASK_EXPIRE_MINUTES = 30L;
-    private static final String AI_DESCRIPTION_TASK_KEY_PREFIX = "picture:ai:task:";
 
     @Override
     public PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
@@ -754,165 +748,8 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
     }
 
     @Override
-    public AiDescriptionTask createAiDescriptionTask(MultipartFile multipartFile, User loginUser) {
-        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
-        ThrowUtils.throwIf(multipartFile == null || multipartFile.isEmpty(), ErrorCode.PARAMS_ERROR, "图片不能为空");
-        ThrowUtils.throwIf(!PictureUtil.isAllowedImageFormat(multipartFile), ErrorCode.PARAMS_ERROR, "图片格式不支持");
-
-        String originalFilename = multipartFile.getOriginalFilename();
-        String suffix = FileUtil.getSuffix(originalFilename);
-        String taskId = RandomUtil.randomString(24);
-        if (StrUtil.isBlank(suffix)) {
-            suffix = "png";
-        }
-        String mimeType = multipartFile.getContentType();
-        if (StrUtil.isBlank(mimeType)) {
-            if ("jpg".equalsIgnoreCase(suffix) || "jpeg".equalsIgnoreCase(suffix)) {
-                mimeType = "image/jpeg";
-            } else if ("webp".equalsIgnoreCase(suffix)) {
-                mimeType = "image/webp";
-            } else {
-                mimeType = "image/png";
-            }
-        }
-        Path tempPath = null;
-        try {
-            Path baseDir = Paths.get(System.getProperty("java.io.tmpdir"), "ai-description", String.valueOf(loginUser.getId()));
-            Files.createDirectories(baseDir);
-            tempPath = baseDir.resolve(taskId + "." + suffix);
-            multipartFile.transferTo(tempPath);
-
-            Date now = new Date();
-            AiDescriptionTask task = new AiDescriptionTask();
-            task.setTaskId(taskId);
-            task.setUserId(loginUser.getId());
-            task.setStatus(AiDescriptionTaskStatusEnum.PROCESSING.getValue());
-            task.setTempFilePath(tempPath.toString());
-            task.setMimeType(mimeType);
-            task.setCreateTime(now);
-            task.setUpdateTime(now);
-            saveAiDescriptionTask(task);
-            return task;
-        } catch (Exception e) {
-            log.error("创建AI图片简介任务失败", e);
-            if (tempPath != null) {
-                try {
-                    Files.deleteIfExists(tempPath);
-                } catch (Exception ex) {
-                    log.warn("清理AI图片简介临时文件失败, taskId={}, path={}", taskId, tempPath, ex);
-                }
-            }
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建AI任务失败");
-        }
-    }
-
-    @Override
-    public AiDescriptionTask getAiDescriptionTask(String taskId, User loginUser) {
-        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
-        ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR, "任务不存在");
-        AiDescriptionTask task = readAiDescriptionTask(taskId);
-        ThrowUtils.throwIf(task == null, ErrorCode.NOT_FOUND_ERROR, "任务不存在或已过期");
-        ThrowUtils.throwIf(!Objects.equals(task.getUserId(), loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限查看该任务");
-        return task;
-    }
-
-    @Override
-    public void processAiDescriptionTask(String taskId) {
-        AiDescriptionTask task = readAiDescriptionTask(taskId);
-        if (task == null) {
-            log.warn("AI图片简介任务不存在, taskId={}", taskId);
-            return;
-        }
-        try {
-            String tempFilePath = task.getTempFilePath();
-            ThrowUtils.throwIf(StrUtil.isBlank(tempFilePath), ErrorCode.SYSTEM_ERROR, "任务图片不存在");
-            String base64Image = PictureUtil.convertLocalImageToBase64(new File(tempFilePath));
-            String description = aiDescriptionClient.generate(base64Image, task.getMimeType());
-            task.setStatus(AiDescriptionTaskStatusEnum.SUCCESS.getValue());
-            task.setDescription(description);
-            task.setErrorMessage(null);
-            task.setUpdateTime(new Date());
-            saveAiDescriptionTask(task);
-            try {
-                if (StrUtil.isNotBlank(task.getTempFilePath())) {
-                    Files.deleteIfExists(Paths.get(task.getTempFilePath()));
-                }
-            } catch (Exception e) {
-                log.warn("清理AI图片简介临时文件失败, taskId={}, path={}", taskId, task.getTempFilePath(), e);
-            }
-            try {
-                String messageJson = JSONUtil.createObj()
-                        .putOnce("type", "ai_description")
-                        .putOnce("taskId", task.getTaskId())
-                        .putOnce("status", task.getStatus())
-                        .putOnce("description", task.getDescription())
-                        .putOnce("errorMessage", task.getErrorMessage())
-                        .toString();
-                WebSocketServer.sendMessage(task.getUserId(), messageJson);
-            } catch (Exception e) {
-                log.warn("WebSocket推送AI图片简介结果失败, taskId={}", taskId, e);
-            }
-        } catch (Exception e) {
-            log.error("AI图片描述生成失败, taskId={}", taskId, e);
-            task.setUpdateTime(new Date());
-            saveAiDescriptionTask(task);
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void markAiDescriptionTaskFailed(String taskId, String errorMessage) {
-        AiDescriptionTask task = readAiDescriptionTask(taskId);
-        if (task == null) {
-            return;
-        }
-        task.setStatus(AiDescriptionTaskStatusEnum.FAILED.getValue());
-        task.setErrorMessage(StrUtil.blankToDefault(errorMessage, "AI处理失败，请重试"));
-        task.setUpdateTime(new Date());
-        saveAiDescriptionTask(task);
-        try {
-            if (StrUtil.isNotBlank(task.getTempFilePath())) {
-                Files.deleteIfExists(Paths.get(task.getTempFilePath()));
-            }
-        } catch (Exception e) {
-            log.warn("清理AI图片简介临时文件失败, taskId={}, path={}", taskId, task.getTempFilePath(), e);
-        }
-        try {
-            String messageJson = JSONUtil.createObj()
-                    .putOnce("type", "ai_description")
-                    .putOnce("taskId", task.getTaskId())
-                    .putOnce("status", task.getStatus())
-                    .putOnce("description", task.getDescription())
-                    .putOnce("errorMessage", task.getErrorMessage())
-                    .toString();
-            WebSocketServer.sendMessage(task.getUserId(), messageJson);
-        } catch (Exception e) {
-            log.warn("WebSocket推送AI图片简介失败结果失败, taskId={}", taskId, e);
-        }
-    }
-
-    @Override
     public void validPicture(Picture picture) {
         Picture.validPicture(picture);
-    }
-
-    private void saveAiDescriptionTask(AiDescriptionTask task) {
-        ValueOperations<String, String> valueOperations = stringRedisTemplate.opsForValue();
-        valueOperations.set(buildAiDescriptionTaskKey(task.getTaskId()), JSONUtil.toJsonStr(task),
-                AI_DESCRIPTION_TASK_EXPIRE_MINUTES, TimeUnit.MINUTES);
-    }
-
-    private AiDescriptionTask readAiDescriptionTask(String taskId) {
-        ValueOperations<String, String> valueOperations = stringRedisTemplate.opsForValue();
-        String taskJson = valueOperations.get(buildAiDescriptionTaskKey(taskId));
-        if (StrUtil.isBlank(taskJson)) {
-            return null;
-        }
-        return JSONUtil.toBean(taskJson, AiDescriptionTask.class);
-    }
-
-    private String buildAiDescriptionTaskKey(String taskId) {
-        return AI_DESCRIPTION_TASK_KEY_PREFIX + taskId;
     }
 
     private void deleteTempFile(File file) {

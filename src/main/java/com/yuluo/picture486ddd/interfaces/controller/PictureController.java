@@ -24,7 +24,7 @@ import com.yuluo.picture486ddd.domain.picture.valueobject.PictureReviewStatusEnu
 import com.yuluo.picture486ddd.interfaces.assembler.PictureAssembler;
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureTagCategory;
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureVo;
-import com.yuluo.picture486ddd.interfaces.vo.picture.AiDescriptionTaskVo;
+
 import com.yuluo.picture486ddd.domain.picture.service.PictureDomainService;
 import com.yuluo.picture486ddd.domain.space.service.SpaceDomainService;
 import com.yuluo.picture486ddd.application.service.UserApplicationService;
@@ -80,19 +80,7 @@ public class PictureController {
         return ResultUtils.success(pictureVo);
     }
 
-    @PostMapping("/ai_generate_description")
-    @Operation(summary = "AI生成图片简介")
-    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_UPLOAD)
-    public BaseResponse<AiDescriptionTaskVo> AiGenerateDescription(@RequestPart("file") MultipartFile multipartFile, HttpServletRequest request) {
-            return ResultUtils.success(pictureApplicationService.AiGenerateDescription(multipartFile, request));
-    }
 
-    @GetMapping("/ai_generate_description/result")
-    @Operation(summary = "查询AI图片简介生成结果（兜底方案）")
-    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_UPLOAD)
-    public BaseResponse<AiDescriptionTaskVo> getAiGenerateDescriptionResult(@RequestParam("taskId") String taskId, HttpServletRequest request) {
-        return ResultUtils.success(pictureApplicationService.getAiDescriptionResult(taskId, request));
-    }
 
     @PostMapping("/upload/cover")
     @Operation(summary = "上传相册封面")

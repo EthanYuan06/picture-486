@@ -1,5 +1,10 @@
+-- 设置字符集
+SET NAMES utf8mb4;
+
 -- 数据库创建
-create database if not exists 486_picture;
+create database if not exists 486_picture
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
 
 -- 数据库选择
 use 486_picture;
@@ -52,6 +57,7 @@ create table if not exists picture
     reviewerId    bigint                             null comment '审核人 ID',
     reviewTime    datetime                           null comment '审核时间',
     isDelete     tinyint  default 0                 not null comment '是否删除',
+    is_vectorized TINYINT DEFAULT 0                 comment '是否已向量化',
     INDEX idx_name (name),                 -- 提升基于图片名称的查询性能
     INDEX idx_introduction (introduction), -- 用于模糊搜索图片简介
     INDEX idx_category (category),         -- 提升基于分类的查询性能
@@ -60,6 +66,8 @@ create table if not exists picture
     INDEX idx_reviewStatus (reviewStatus),  -- 提升基于审核状态的查询性能
     INDEX idx_spaceId (spaceId)             -- 提升基于空间 ID 的查询性能
 ) comment '图片' collate = utf8mb4_unicode_ci;
+
+
 
 -- 空间表
 create table if not exists space

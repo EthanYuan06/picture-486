@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuluo.picture486ddd.domain.message.service.MessageDomainService;
-import com.yuluo.picture486ddd.infrastructure.mq.ai_description.AiDescriptionMqConstants;
+
 import com.yuluo.picture486ddd.shared.manager.auth.SpaceUserAuthManager;
 import com.yuluo.picture486ddd.shared.manager.auth.StpKit;
 import com.yuluo.picture486ddd.shared.manager.auth.model.SpaceUserPermissionConstant;
@@ -14,7 +14,7 @@ import com.yuluo.picture486ddd.domain.space.service.SpaceDomainService;
 import com.yuluo.picture486ddd.application.service.PictureApplicationService;
 import com.yuluo.picture486ddd.application.service.UserApplicationService;
 import com.yuluo.picture486ddd.domain.picture.entity.Picture;
-import com.yuluo.picture486ddd.infrastructure.mq.ai_description.AiDescriptionTask;
+
 import com.yuluo.picture486ddd.domain.picture.service.PictureDomainService;
 import com.yuluo.picture486ddd.domain.user.entity.User;
 import com.yuluo.picture486ddd.infrastructure.common.DeleteRequest;
@@ -23,14 +23,12 @@ import com.yuluo.picture486ddd.infrastructure.exception.ThrowUtils;
 import com.yuluo.picture486ddd.infrastructure.mapper.PictureMapper;
 import com.yuluo.picture486ddd.interfaces.dto.picture.*;
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureVo;
-import com.yuluo.picture486ddd.interfaces.vo.picture.AiDescriptionTaskVo;
+
 import com.yuluo.picture486ddd.interfaces.vo.user.UserVo;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,15 +59,6 @@ public class PictureApplicationServiceImpl extends ServiceImpl<PictureMapper, Pi
 
     @Resource
     private SpaceUserAuthManager spaceUserAuthManager;
-
-    @Resource
-    private PictureAiDescriptionTaskProcessor pictureAiDescriptionTaskProcessor;
-
-    @Resource
-    private ObjectProvider<RabbitTemplate> rabbitTemplateProvider;
-
-    @Value("${ai.description.mq.enabled:true}")
-    private boolean aiDescriptionMqEnabled;
 
     @Override
     public PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, HttpServletRequest request) {
@@ -229,42 +218,6 @@ public class PictureApplicationServiceImpl extends ServiceImpl<PictureMapper, Pi
     @Override
     public Picture getPictureById(long id) {
         return pictureDomainService.getPictureById(id);
-    }
-
-    @Override
-    public AiDescriptionTaskVo AiGenerateDescription(MultipartFile multipartFile, HttpServletRequest request) {
-        User loginUser = userApplicationService.getLoginUser(request);
-        AiDescriptionTask task = pictureDomainService.createAiDescriptionTask(multipartFile, loginUser);
-        RabbitTemplate rabbitTemplate = rabbitTemplateProvider.getIfAvailable();
-        if (aiDescriptionMqEnabled && rabbitTemplate != null) {
-            com.yuluo.picture486ddd.domain.picture.dto.AiDescriptionTaskMessage message = new com.yuluo.picture486ddd.domain.picture.dto.AiDescriptionTaskMessage();
-            message.setTaskId(task.getTaskId());
-            message.setAttempt(0);
-            rabbitTemplate.convertAndSend(
-                    AiDescriptionMqConstants.EXCHANGE,
-                    AiDescriptionMqConstants.ROUTING_KEY,
-                    message
-            );
-        } else {
-            pictureAiDescriptionTaskProcessor.processTask(task.getTaskId());
-        }
-        return toAiDescriptionTaskVo(task);
-    }
-
-    @Override
-    public AiDescriptionTaskVo getAiDescriptionResult(String taskId, HttpServletRequest request) {
-        User loginUser = userApplicationService.getLoginUser(request);
-        AiDescriptionTask task = pictureDomainService.getAiDescriptionTask(taskId, loginUser);
-        return toAiDescriptionTaskVo(task);
-    }
-
-    private AiDescriptionTaskVo toAiDescriptionTaskVo(AiDescriptionTask task) {
-        AiDescriptionTaskVo taskVo = new AiDescriptionTaskVo();
-        taskVo.setTaskId(task.getTaskId());
-        taskVo.setStatus(task.getStatus());
-        taskVo.setDescription(task.getDescription());
-        taskVo.setErrorMessage(task.getErrorMessage());
-        return taskVo;
     }
 
 }

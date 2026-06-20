@@ -3,7 +3,7 @@ package com.yuluo.picture486ddd.domain.picture.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yuluo.picture486ddd.domain.picture.entity.Picture;
-import com.yuluo.picture486ddd.infrastructure.mq.ai_description.AiDescriptionTask;
+
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yuluo.picture486ddd.domain.user.entity.User;
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureVo;
@@ -161,12 +161,4 @@ public interface PictureDomainService extends IService<Picture> {
     void updatePicture(Picture picture, HttpServletRequest request);
 
     Picture getPictureById(long id);
-
-    AiDescriptionTask createAiDescriptionTask(MultipartFile multipartFile, User loginUser);
-
-    AiDescriptionTask getAiDescriptionTask(String taskId, User loginUser);
-
-    void processAiDescriptionTask(String taskId);
-
-    void markAiDescriptionTaskFailed(String taskId, String errorMessage);
 }

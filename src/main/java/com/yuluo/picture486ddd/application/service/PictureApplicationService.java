@@ -7,7 +7,7 @@ import com.yuluo.picture486ddd.domain.picture.entity.Picture;
 import com.yuluo.picture486ddd.domain.user.entity.User;
 import com.yuluo.picture486ddd.infrastructure.common.DeleteRequest;
 import com.yuluo.picture486ddd.interfaces.dto.picture.*;
-import com.yuluo.picture486ddd.interfaces.vo.picture.AiDescriptionTaskVo;
+
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureVo;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
@@ -156,8 +156,4 @@ public interface PictureApplicationService extends IService<Picture> {
     void updatePicture(Picture picture, HttpServletRequest request);
 
     Picture getPictureById(long id);
-
-    AiDescriptionTaskVo AiGenerateDescription(MultipartFile multipartFile, HttpServletRequest request);
-
-    AiDescriptionTaskVo getAiDescriptionResult(String taskId, HttpServletRequest request);
 }

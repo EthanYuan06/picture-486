@@ -136,13 +136,6 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/com.alibaba/dashscope-sdk-java -->
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>dashscope-sdk-java</artifactId>
-            <version>2.22.6</version>
-            <scope>compile</scope>
-        </dependency>
 
         <!-- 分库分表 -->
         <!--<dependency>-->

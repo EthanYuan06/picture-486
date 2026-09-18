@@ -47,7 +47,8 @@ services:
       rabbitmq:
         condition: service_healthy
     volumes:
-      - ./chroma_data:/app/chroma_data
+      # 代码实际使用 /app/app/chroma_data (见 chroma_config.py / vectorize_picture.py)
+      - ./app/chroma_data:/app/app/chroma_data
     networks:
       - picture-network
     restart: unless-stopped

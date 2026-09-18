@@ -7,6 +7,8 @@ services:
       context: ${FRONTEND_DIR:-../486-picture-frontend}
       dockerfile: Dockerfile
     image: picture-486-frontend:0.0.1
+    # 本地构建, 禁止去 registry 拉取(该镜像 Hub 上不存在)
+    pull_policy: never
     container_name: picture-486-frontend
     ports:
       - "5173:5173"
@@ -27,6 +29,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: picture-486-ai:0.0.1
+    # 本地构建, 禁止去 registry 拉取(该镜像 Hub 上不存在)
+    pull_policy: never
     container_name: picture-ai-microservice
     ports:
       - "8024:8024"
@@ -58,6 +62,8 @@ services:
       context: ${BACKEND_DIR:-..}
       dockerfile: Dockerfile
     image: picture-486-backend:0.0.1
+    # 本地构建, 禁止去 registry 拉取(该镜像 Hub 上不存在)
+    pull_policy: never
     container_name: picture-486-backend
     ports:
       - "18124:8124"

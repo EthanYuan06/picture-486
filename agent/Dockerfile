@@ -2,7 +2,8 @@ FROM python:3.14
 
 WORKDIR /app
 
-ENV UV_INDEX_URL=https://pypi.org/simple
+# 使用国内镜像源, 避免 pypi.org 在国内下载缓慢
+ENV UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 安装uv
 RUN --mount=type=cache,target=/root/.cache/pip pip install -i ${UV_INDEX_URL}  uv

@@ -12,6 +12,7 @@ import com.qcloud.cos.model.ciModel.persistence.ProcessResults;
 import com.yuluo.picture486ddd.infrastructure.config.CosClientConfig;
 import com.yuluo.picture486ddd.infrastructure.exception.BusinessException;
 import com.yuluo.picture486ddd.infrastructure.exception.ErrorCode;
+import com.yuluo.picture486ddd.infrastructure.exception.ThrowUtils;
 import com.yuluo.picture486ddd.infrastructure.api.CosManager;
 import com.yuluo.picture486ddd.interfaces.dto.picture.PictureUploadResult;
 import jakarta.annotation.Resource;
@@ -52,7 +53,7 @@ public abstract class PictureUploadTemplate {
             file = File.createTempFile(uploadPath, null);
             // 处理文件来源（本地或 URL）
             processFile(inputSource, file);
-            // 上传图片到对象存储
+            // 上传图片到对象存储(带图片处理:生成webp)
             PutObjectResult putObjectResult = cosManager.putPictureObject(uploadPath, file);
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
             ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
@@ -70,6 +71,52 @@ public abstract class PictureUploadTemplate {
             }
             // 只封装原图返回结果
             return buildResult(imageInfo, originFilename, file, uploadPath);
+        } catch (Exception e) {
+            log.error("图片上传到对象存储失败", e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+        }
+        finally {
+            deleteTempFile(file);
+        }
+    }
+
+    /**
+     * 模板方法：上传原始图片(不进行图片处理,不生成webp)
+     * 用于上传到临时目录,等待审核通过后再正式处理
+     *
+     * @param inputSource 文件源
+     * @param uploadPathPrefix 上传路径前缀
+     * @return 图片信息(不包含thumbnailUrl)
+     */
+    public final PictureUploadResult uploadPictureRaw(Object inputSource, String uploadPathPrefix){
+        //校验图片
+        validPicture(inputSource);
+        //构建图片上传地址
+        String uuid = RandomUtil.randomString(16);
+        String originFilename = getOriginalFilename(inputSource);
+        String uploadFileName = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid, FileUtil.getSuffix(originFilename));
+        String uploadPath = String.format("%s/%s", uploadPathPrefix, uploadFileName);
+        //上传图片操作
+        File file = null;
+        try {
+            // 创建临时文件
+            file = File.createTempFile(uploadPath, null);
+            // 处理文件来源（本地或 URL）
+            processFile(inputSource, file);
+            
+            // 上传图片到对象存储(使用带图片处理的接口获取元数据,但不保存处理结果)
+            PutObjectResult putObjectResult = cosManager.putPictureObject(uploadPath, file);
+            ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+            
+            log.info("临时上传提取图片元数据成功 - width: {}, height: {}, format: {}", 
+                    imageInfo.getWidth(), imageInfo.getHeight(), imageInfo.getFormat());
+            
+            // 封装返回结果(包含完整的图片元数据)
+            PictureUploadResult result = new PictureUploadResult();
+            buildOriginalPic(imageInfo, originFilename, file, uploadPath, result);
+            // 注意: 不设置thumbnailUrl,等审核通过后再填充
+            
+            return result;
         } catch (Exception e) {
             log.error("图片上传到对象存储失败", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
@@ -166,5 +213,4 @@ public abstract class PictureUploadTemplate {
         pictureUploadResult.setPicFormat(imageInfo.getFormat());
         pictureUploadResult.setUrl(cosClientConfig.getHost() + "/" + uploadPath);
     }
-
 }

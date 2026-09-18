@@ -22,6 +22,7 @@ import com.yuluo.picture486ddd.domain.space.entity.Space;
 import com.yuluo.picture486ddd.domain.user.entity.User;
 import com.yuluo.picture486ddd.domain.picture.valueobject.PictureReviewStatusEnum;
 import com.yuluo.picture486ddd.interfaces.assembler.PictureAssembler;
+import com.yuluo.picture486ddd.interfaces.dto.picture.*;
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureTagCategory;
 import com.yuluo.picture486ddd.interfaces.vo.picture.PictureVo;
 
@@ -293,6 +294,22 @@ public class PictureController {
         return ResultUtils.success(true);
     }
 
+    @PostMapping("/ai/review/callback")
+    @Operation(summary = "【AI模块】审核回调接口")
+    public BaseResponse<Boolean> aiReviewCallback(@RequestBody AiReviewCallbackRequest callbackRequest) {
+        log.info("收到AI审核回调 - pictureId: {}, status: {}", 
+                 callbackRequest.getPictureId(), callbackRequest.getReviewStatus());
+        
+        // 调用领域服务处理回调
+        pictureDomainService.handleAiReviewCallback(callbackRequest);
+        
+        //清除缓存
+        clearCache("listPage");
+        clearCache("listPageVo");
+        
+        return ResultUtils.success(true);
+    }
+
     @PostMapping("/edit/batch")
     @Operation(summary = "批量编辑图片")
     @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_EDIT)
@@ -406,6 +423,48 @@ public class PictureController {
         stringRedisTemplate.delete(stringRedisTemplate.keys(keyPrefix + "*"));
     }
 
+    /**
+     * 【测试专用】仅清除本地缓存 L1（Caffeine），保留 Redis L2
+     * 用于多级缓存性能对比测试中的 L2 命中场景
+     */
+    @PostMapping("/cache/clear-local")
+    @Operation(summary = "【测试】仅清除本地缓存L1")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> clearLocalCache() {
+        LOCAL_CACHE.invalidateAll();
+        log.info("[缓存测试] L1 本地缓存已清空, 当前 L1 大小={}", LOCAL_CACHE.estimatedSize());
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 【测试专用】清除所有缓存（L1 + L2），用于 DB 冷查询场景
+     */
+    @PostMapping("/cache/clear-all")
+    @Operation(summary = "【测试】清除所有缓存L1+L2")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> clearAllCache() {
+        clearCache("listPage");
+        clearCache("listPageVo");
+        log.info("[缓存测试] L1+L2 缓存已清空");
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 【测试专用】查询当前缓存状态：L1 大小 + Redis 中 listPage/listPageVo 前缀的 key 数量
+     */
+    @GetMapping("/cache/stats")
+    @Operation(summary = "【测试】查询缓存状态")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<java.util.Map<String, Object>> cacheStats() {
+        java.util.Map<String, Object> stats = new java.util.LinkedHashMap<>();
+        stats.put("l1Size", LOCAL_CACHE.estimatedSize());
+        java.util.Set<String> listPageKeys = stringRedisTemplate.keys("listPage:*");
+        java.util.Set<String> listPageVoKeys = stringRedisTemplate.keys("listPageVo:*");
+        stats.put("l2ListPageKeys", listPageKeys == null ? 0 : listPageKeys.size());
+        stats.put("l2ListPageVoKeys", listPageVoKeys == null ? 0 : listPageVoKeys.size());
+        return ResultUtils.success(stats);
+    }
+
     @PostMapping("/upload/dev")
     @Operation(summary = "【开发测试】上传图片-绕过鉴权")
     public BaseResponse<PictureVo> uploadPictureDev(
@@ -418,13 +477,33 @@ public class PictureController {
         testUser.setUserName("测试用户");
         testUser.setUserRole("user");
 
-        // 直接调用领域层服务，绕过应用层的鉴权逻辑
+        // 直接调用领域层服务，跳过应用层的鉴权逻辑
         PictureVo pictureVo = pictureDomainService.uploadPicture(multipartFile, pictureUploadRequest, testUser);
 
         // 清除缓存
         clearCache("listPage");
         clearCache("listPageVo");
 
+        return ResultUtils.success(pictureVo);
+    }
+
+    @PostMapping("/ai/upload/callback")
+    @Operation(summary = "AI微服务回调-智能图片上传")
+    public BaseResponse<PictureVo> aiPictureCallback(@RequestBody AiPictureCallbackRequest callbackRequest) {
+        log.info("收到AI微服务回调请求 - userId: {}, spaceId: {}, url: {}, name: {}", 
+                callbackRequest.getUserId(), 
+                callbackRequest.getSpaceId(), 
+                callbackRequest.getUrl(), 
+                callbackRequest.getName());
+        
+        PictureVo pictureVo = pictureApplicationService.aiPictureCallback(callbackRequest);
+        
+        log.info("AI微服务回调处理完成并返回 - pictureId: {}, url: {}", 
+                pictureVo.getId(), pictureVo.getUrl());
+        
+        // 清除缓存
+        clearCache("listPage");
+        clearCache("listPageVo");
         return ResultUtils.success(pictureVo);
     }
 }

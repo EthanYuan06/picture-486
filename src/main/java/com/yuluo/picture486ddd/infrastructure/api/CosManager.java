@@ -103,4 +103,71 @@ public class CosManager {
             throw new RuntimeException("删除COS对象失败: " + key, e);
         }
     }
+
+    /**
+     * 移动文件(下载+重新上传触发图片处理)
+     * 从源位置下载文件,重新上传到目标位置并触发COS图片处理(生成webp)
+     *
+     * @param sourceUrl 源文件URL或key
+     * @param targetPrefix 目标目录前缀(如: space/123 或 public/456)
+     * @return 目标文件的完整URL(原图)
+     */
+    public String moveFile(String sourceUrl, String targetPrefix) {
+        File tempFile = null;
+        try {
+            // 1. 从URL提取源key和文件名
+            String sourceKey = sourceUrl;
+            if (sourceUrl.startsWith("http")) {
+                sourceKey = sourceUrl.substring(sourceUrl.indexOf("/", 8) + 1);
+            }
+            
+            // 提取文件名(保留原始文件名)
+            String fileName = sourceKey.substring(sourceKey.lastIndexOf("/") + 1);
+            
+            // 2. 构建目标key
+            String targetKey = targetPrefix + "/" + fileName;
+            
+            log.info("开始移动COS文件(下载+重新上传) - sourceKey: {}, targetKey: {}", sourceKey, targetKey);
+            
+            // 3. 下载源文件到临时文件
+            GetObjectRequest getObjectRequest = new GetObjectRequest(cosClientConfig.getBucket(), sourceKey);
+            COSObject cosObject = cosClient.getObject(getObjectRequest);
+            
+            // 创建临时文件
+            tempFile = File.createTempFile("cos_move_", "_" + fileName);
+            // 下载文件内容
+            java.io.InputStream inputStream = cosObject.getObjectContent();
+            FileUtil.writeFromStream(inputStream, tempFile);
+            
+            log.info("源文件下载成功 - sourceKey: {}, tempFile: {}", sourceKey, tempFile.getAbsolutePath());
+            
+            // 4. 重新上传到目标位置(触发图片处理生成webp)
+            this.putPictureObject(targetKey, tempFile);
+            
+            log.info("文件重新上传成功(已触发图片处理) - targetKey: {}", targetKey);
+            
+            // 5. 删除源文件
+            cosClient.deleteObject(cosClientConfig.getBucket(), sourceKey);
+            
+            log.info("源文件删除成功 - sourceKey: {}", sourceKey);
+            
+            // 6. 返回目标文件的完整URL(原图)
+            String targetUrl = cosClientConfig.getHost() + "/" + targetKey;
+            return targetUrl;
+            
+        } catch (Exception e) {
+            log.error("移动COS文件失败 - sourceUrl: {}, targetPrefix: {}", sourceUrl, targetPrefix, e);
+            throw new RuntimeException("移动COS文件失败: " + sourceUrl, e);
+        } finally {
+            // 清理临时文件
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    FileUtil.del(tempFile);
+                    log.debug("临时文件已清理 - tempFile: {}", tempFile.getAbsolutePath());
+                } catch (Exception e) {
+                    log.warn("清理临时文件失败 - tempFile: {}", tempFile.getAbsolutePath(), e);
+                }
+            }
+        }
+    }
 }

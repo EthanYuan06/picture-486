@@ -44,6 +44,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import com.yuluo.picture486ddd.infrastructure.config.RabbitMQConfig;
+import com.yuluo.picture486ddd.interfaces.dto.picture.AiReviewMessage;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -87,6 +91,12 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private RabbitTemplate rabbitTemplate;
+
+    @Value("${ai.service.api-key}")
+    private String aiServiceApiKey;
 
     @Override
     public PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
@@ -140,19 +150,16 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
             }
         }
             //上传图片
-            //划分公共图库和私有相册
-            String uploadPathPrefix;
-            if (spaceId != null){
-                uploadPathPrefix = String.format("space/%s", spaceId);
-            }else{
-                uploadPathPrefix = String.format("public/%s", loginUser.getId());
-            }
+            // ⚠️ 先上传到临时目录(temp/xxx.jpg),等AI审核通过后再移动到正式目录并生成webp
+            String tempUploadPathPrefix = "temp";
+            
             //根据inputSource区分上传方式
             PictureUploadTemplate pictureUploadTemplate = filePictureUpload;
             if (inputSource instanceof String) {
                 pictureUploadTemplate = urlPictureUpload;
             }
-            PictureUploadResult pictureUploadResult = pictureUploadTemplate.uploadPicture(inputSource, uploadPathPrefix);
+            // 使用uploadPictureRaw(不处理图片,不生成webp)
+            PictureUploadResult pictureUploadResult = pictureUploadTemplate.uploadPictureRaw(inputSource, tempUploadPathPrefix);
             //构造要入库的图片信息
             Picture picture = new Picture();
             picture.setUrl(pictureUploadResult.getUrl());
@@ -175,7 +182,7 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
             }
             //开启事务
             Long finalSpaceId = spaceId;
-            transactionTemplate.execute(status -> {
+            Picture savedPicture = transactionTemplate.execute(status -> {
                 //插入数据
                 boolean result = this.saveOrUpdate(picture);
                 ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
@@ -190,7 +197,13 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
                 }
                 return picture;
             });
-            return PictureVo.objToVo(picture);
+            
+            // 发送AI审核MQ消息(仅新增时发送,编辑时不重复发送)
+            if (pictureId == null && savedPicture.getReviewStatus().equals(PictureReviewStatusEnum.REVIEWING.getValue())) {
+                sendAiReviewMessage(savedPicture);
+            }
+            
+            return PictureVo.objToVo(savedPicture);
         }
 
     @Override
@@ -335,12 +348,42 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
         if (oldPicture.getReviewStatus().equals(reviewStatus)){
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "请勿重复审核");
         }
+        
         //4.操作数据库更新审核状态
         Picture updatePicture = new Picture();
         BeanUtils.copyProperties(pictureReviewRequest, updatePicture);
         updatePicture.setReviewStatus(reviewStatus);
         updatePicture.setReviewerId(loginUser.getId());
         updatePicture.setReviewTime(new Date());
+        
+        //5.如果审核通过且当前是临时URL,需要移动到正式目录
+        if (reviewStatus == 1 && oldPicture.getUrl() != null && oldPicture.getUrl().contains("/temp/")) {
+            try {
+                // 构建正式目录路径
+                String formalPathPrefix;
+                if (oldPicture.getSpaceId() != null) {
+                    formalPathPrefix = String.format("space/%s", oldPicture.getSpaceId());
+                } else {
+                    formalPathPrefix = String.format("public/%s", oldPicture.getUserId());
+                }
+                
+                // 移动文件从临时目录到正式目录
+                String formalUrl = cosManager.moveFile(oldPicture.getUrl(), formalPathPrefix);
+                log.info("人工审核通过,文件已从临时目录移动到正式目录 - pictureId: {}, formalUrl: {}", 
+                        oldPicture.getId(), formalUrl);
+                
+                // 更新updatePicture的URL(智能字段在上传时已由用户填写,不需要再次填充)
+                updatePicture.setUrl(formalUrl);
+                
+            } catch (Exception e) {
+                log.error("人工审核通过时移动文件失败 - pictureId: {}, url: {}", 
+                        oldPicture.getId(), oldPicture.getUrl(), e);
+                // 如果移动失败(可能文件已被COS删除),只记录日志,不阻断审核流程
+                // 管理员可以后续手动处理或重新上传
+            }
+        }
+        
+        //6.执行数据库更新
         boolean result = this.updateById(updatePicture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "操作失败");
         
@@ -389,6 +432,33 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
             updatePicture.setReviewerId(loginUser.getId());
             updatePicture.setReviewMessage(reviewMessage);
             updatePicture.setReviewTime(new Date());
+            
+            // 如果审核通过且当前是临时URL,需要移动到正式目录
+            if (reviewStatus == 1 && picture.getUrl() != null && picture.getUrl().contains("/temp/")) {
+                try {
+                    // 构建正式目录路径
+                    String formalPathPrefix;
+                    if (picture.getSpaceId() != null) {
+                        formalPathPrefix = String.format("space/%s", picture.getSpaceId());
+                    } else {
+                        formalPathPrefix = String.format("public/%s", picture.getUserId());
+                    }
+                    
+                    // 移动文件从临时目录到正式目录
+                    String formalUrl = cosManager.moveFile(picture.getUrl(), formalPathPrefix);
+                    log.info("批量人工审核通过,文件已移动 - pictureId: {}, formalUrl: {}", 
+                            picture.getId(), formalUrl);
+                    
+                    updatePicture.setUrl(formalUrl);
+                    // 智能字段在上传时已由用户填写,不需要再次填充
+                    
+                } catch (Exception e) {
+                    log.error("批量人工审核通过时移动文件失败 - pictureId: {}, url: {}", 
+                            picture.getId(), picture.getUrl(), e);
+                    // 如果移动失败,只记录日志,不阻断批量审核流程
+                }
+            }
+            
             return updatePicture;
         }).toList();
         boolean result = this.updateBatchById(updatePictureList);
@@ -420,6 +490,37 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
         }else {
             //普通用户创建或编辑图片，只更改字段为“待审核”
             picture.setReviewStatus(PictureReviewStatusEnum.REVIEWING.getValue());
+        }
+    }
+
+    /**
+     * 发送AI审核MQ消息
+     *
+     * @param picture 图片信息
+     */
+    private void sendAiReviewMessage(Picture picture) {
+        try {
+            AiReviewMessage message = new AiReviewMessage();
+            message.setPictureId(picture.getId());
+            message.setUserId(picture.getUserId());
+            message.setUrl(picture.getUrl());
+            message.setApiKey(aiServiceApiKey);
+            message.setTimestamp(System.currentTimeMillis());
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.AI_REVIEW_EXCHANGE,
+                    RabbitMQConfig.AI_REVIEW_ROUTING_KEY,
+                    message,
+                    msg -> {
+                        msg.getMessageProperties().setDeliveryMode(org.springframework.amqp.core.MessageDeliveryMode.PERSISTENT);
+                        return msg;
+                    }
+            );
+
+            log.info("发送AI审核MQ消息成功 - pictureId: {}, url: {}", picture.getId(), picture.getUrl());
+        } catch (Exception e) {
+            log.error("发送AI审核MQ消息失败 - pictureId: {}", picture.getId(), e);
+            // MQ发送失败不影响主流程,仅记录日志
         }
     }
 
@@ -752,6 +853,83 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
         Picture.validPicture(picture);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public PictureVo aiSmartUpload(AiPictureCallbackRequest callbackRequest, User user) {
+        // 1. 从 URL提取文件信息并上传到临时目录
+        String url = callbackRequest.getUrl();
+        Long spaceId = callbackRequest.getSpaceId();
+            
+        log.info("开始处理AI智能图片上传 - userId: {}, spaceId: {}, url: {}", 
+                user.getId(), spaceId, url);
+            
+        // ⚠️ 先上传到临时目录(temp/xxx.jpg),等AI审核通过后再移动到正式目录并生成webp
+        String tempUploadPathPrefix = "temp";
+            
+        // 使用URL上传方式(不处理图片,不生成webp)
+        PictureUploadResult uploadResult = urlPictureUpload.uploadPictureRaw(url, tempUploadPathPrefix);
+            
+        log.info("AI图片URL下载及元数据提取完成 - picSize: {}, dimensions: {}x{}, format: {}", 
+                uploadResult.getPicSize(), 
+                uploadResult.getPicWidth(), 
+                uploadResult.getPicHeight(), 
+                uploadResult.getPicFormat());
+            
+        // 2. 构造图片对象
+        Picture picture = new Picture();
+        picture.setUrl(uploadResult.getUrl());
+        picture.setThumbnailUrl(uploadResult.getThumbnailUrl());
+        picture.setName(callbackRequest.getName());
+        picture.setIntroduction(callbackRequest.getIntroduction());
+        picture.setCategory(callbackRequest.getCategory());
+        // tags转换为JSON字符串
+        if (callbackRequest.getTags() != null && !callbackRequest.getTags().isEmpty()) {
+            picture.setTags(JSONUtil.toJsonStr(callbackRequest.getTags()));
+        }
+        picture.setPicSize(uploadResult.getPicSize());
+        picture.setPicWidth(uploadResult.getPicWidth());
+        picture.setPicHeight(uploadResult.getPicHeight());
+        picture.setPicScale(uploadResult.getPicScale());
+        picture.setPicFormat(uploadResult.getPicFormat());
+        picture.setUserId(user.getId());
+        picture.setSpaceId(spaceId);
+            
+        // 3. 填充审核参数(设置为待审核,不走自动过审)
+        picture.setReviewStatus(PictureReviewStatusEnum.REVIEWING.getValue());
+            
+        // 4. 事务入库
+        Long finalSpaceId = spaceId;
+        Picture savedPicture = transactionTemplate.execute(status -> {
+            boolean result = this.save(picture);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片保存失败");
+                
+            log.info("AI智能图片入库成功 - pictureId: {}, name: {}, category: {}, tags: {}", 
+                    picture.getId(), 
+                    picture.getName(), 
+                    picture.getCategory(), 
+                    callbackRequest.getTags());
+                
+            // 更新相册额度
+            if (finalSpaceId != null) {
+                boolean update = spaceDomainService.lambdaUpdate()
+                        .eq(Space::getId, finalSpaceId)
+                        .setSql("totalSize = totalSize + " + picture.getPicSize())
+                        .setSql("totalCount = totalCount + 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "图片额度更新失败");
+                log.info("相册额度更新成功 - spaceId: {}, newTotalSize: {}, newTotalCount: {}", 
+                        finalSpaceId, spaceDomainService.getById(finalSpaceId).getTotalSize(), 
+                        spaceDomainService.getById(finalSpaceId).getTotalCount());
+            }
+            return picture;
+        });
+        
+        // 5. 发送AI审核MQ消息
+        sendAiReviewMessage(savedPicture);
+            
+        return PictureVo.objToVo(savedPicture);
+    }
+
     private void deleteTempFile(File file) {
         if (file == null) {
             return;
@@ -760,6 +938,138 @@ public class PictureDomainServiceImpl extends ServiceImpl<PictureMapper, Picture
         if (!deleted) {
             log.error("file delete error, filepath = {}", file.getAbsolutePath());
         }
+    }
+
+    /**
+     * 处理AI审核回调
+     *
+     * @param callbackRequest AI审核回调请求
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void handleAiReviewCallback(AiReviewCallbackRequest callbackRequest) {
+        // 1. 参数校验
+        ThrowUtils.throwIf(callbackRequest == null || callbackRequest.getPictureId() == null,
+                ErrorCode.PARAMS_ERROR, "回调参数错误");
+        
+        Long pictureId = callbackRequest.getPictureId();
+        Integer reviewStatus = callbackRequest.getReviewStatus();
+        
+        // 2. 查询图片是否存在
+        Picture picture = this.getById(pictureId);
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+        
+        // 3. 幂等性检查: 如果已经处理过(状态不是待审核),直接返回
+        if (!Integer.valueOf(PictureReviewStatusEnum.REVIEWING.getValue()).equals(picture.getReviewStatus())) {
+            log.warn("图片已处理过,跳过重复回调 - pictureId: {}, currentStatus: {}",
+                    pictureId, picture.getReviewStatus());
+            return;
+        }
+        
+        // 4. 根据审核结果处理
+        if (reviewStatus == 1) {
+            // ✅ 审核通过: 移动文件到正式目录 + 填充AI生成的智能字段
+            handleReviewPass(picture, callbackRequest);
+        } else if (reviewStatus == 2) {
+            // ❌ 审核拒绝: 只更新状态,不删除文件(COS已配置24h自动删除临时文件)
+            handleReviewReject(picture, callbackRequest);
+        } else if (reviewStatus == 3) {
+            // ⏸️ 存疑: 保持待审核状态,等待人工审核
+            handleReviewSuspect(picture, callbackRequest);
+        } else {
+            ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "无效的审核状态: " + reviewStatus);
+        }
+        
+        log.info("AI审核回调处理成功 - pictureId: {}, status: {}, message: {}",
+                pictureId, reviewStatus, callbackRequest.getReviewMessage());
+    }
+    
+    /**
+     * 处理审核通过的情况
+     */
+    private void handleReviewPass(Picture picture, AiReviewCallbackRequest callbackRequest) {
+        String tempUrl = picture.getUrl();
+        Long spaceId = picture.getSpaceId();
+        Long userId = picture.getUserId();
+        
+        // 1. 构建正式目录路径
+        String formalPathPrefix;
+        if (spaceId != null) {
+            formalPathPrefix = String.format("space/%s", spaceId);
+        } else {
+            formalPathPrefix = String.format("public/%s", userId);
+        }
+        
+        // 2. 移动文件从临时目录到正式目录
+        String formalUrl = cosManager.moveFile(tempUrl, formalPathPrefix);
+        log.info("文件已从临时目录移动到正式目录 - pictureId: {}, formalUrl: {}", 
+                picture.getId(), formalUrl);
+        
+        // 3. 硬编码填充thumbnailUrl (原图URL后缀改为.webp)
+        // 例如: https://cos.xxx.com/space/123/xxx.jpg → https://cos.xxx.com/space/123/xxx.webp
+        String thumbnailUrl = formalUrl.substring(0, formalUrl.lastIndexOf(".")) + ".webp";
+        
+        // 4. 只更新URL、thumbnailUrl和审核状态(智能字段在上传时已由用户填写,不需要再次填充)
+        picture.setUrl(formalUrl);
+        picture.setThumbnailUrl(thumbnailUrl);
+        picture.setReviewStatus(1); // 通过
+        picture.setReviewMessage(callbackRequest.getReviewMessage());
+        picture.setReviewTime(new Date());
+        
+        // 5. 保存更新
+        boolean result = this.updateById(picture);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新审核状态失败");
+        
+        // 6. 发送站内消息通知用户
+        String reviewMsg = ObjUtil.defaultIfNull(callbackRequest.getReviewMessage(), "无");
+        String title = "图片审核通过";
+        String message = String.format("您的图片（ID: %d）已通过AI审核，备注：%s",
+                picture.getId(),
+                reviewMsg);
+        messageDomainService.sendMessage(picture.getUserId(), title, message);
+        
+        log.info("审核通过处理完成 - pictureId: {}, userId: {}, url: {}, thumbnailUrl: {}", 
+                picture.getId(), picture.getUserId(), formalUrl, thumbnailUrl);
+    }
+    
+    /**
+     * 处理审核拒绝的情况
+     */
+    private void handleReviewReject(Picture picture, AiReviewCallbackRequest callbackRequest) {
+        // 1. 只更新审核状态和原因,不删除文件(COS已配置24h自动删除临时文件)
+        picture.setReviewStatus(2); // 拒绝
+        picture.setReviewMessage(callbackRequest.getReviewMessage());
+        picture.setReviewTime(new Date());
+        
+        // 2. 保存更新
+        boolean result = this.updateById(picture);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新审核状态失败");
+        
+        // 3. 发送站内消息通知用户
+        String reviewMsg = ObjUtil.defaultIfNull(callbackRequest.getReviewMessage(), "无");
+        String title = "图片审核拒绝";
+        String message = String.format("您的图片（ID: %d）未通过AI审核，原因：%s。管理员将在24小时内查看该图片。",
+                picture.getId(),
+                reviewMsg);
+        messageDomainService.sendMessage(picture.getUserId(), title, message);
+        
+        log.info("审核拒绝处理完成 - pictureId: {}, userId: {}, reason: {}", 
+                picture.getId(), picture.getUserId(), reviewMsg);
+    }
+    
+    /**
+     * 处理审核存疑的情况
+     */
+    private void handleReviewSuspect(Picture picture, AiReviewCallbackRequest callbackRequest) {
+        // 1. 保持待审核状态,仅记录AI的存疑备注
+        picture.setReviewMessage("AI存疑: " + ObjUtil.defaultIfNull(callbackRequest.getReviewMessage(), "需人工复核"));
+        // 注意: 不改变reviewStatus,仍为0(待审核)
+        
+        // 2. 保存更新
+        boolean result = this.updateById(picture);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新审核状态失败");
+        
+        log.info("审核存疑处理完成 - pictureId: {}, 等待人工审核", picture.getId());
     }
 
 }

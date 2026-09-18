@@ -18,6 +18,7 @@ import com.yuluo.picture486ddd.domain.picture.entity.Picture;
 import com.yuluo.picture486ddd.domain.picture.service.PictureDomainService;
 import com.yuluo.picture486ddd.domain.user.entity.User;
 import com.yuluo.picture486ddd.infrastructure.common.DeleteRequest;
+import com.yuluo.picture486ddd.infrastructure.exception.BusinessException;
 import com.yuluo.picture486ddd.infrastructure.exception.ErrorCode;
 import com.yuluo.picture486ddd.infrastructure.exception.ThrowUtils;
 import com.yuluo.picture486ddd.infrastructure.mapper.PictureMapper;
@@ -29,6 +30,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +61,9 @@ public class PictureApplicationServiceImpl extends ServiceImpl<PictureMapper, Pi
 
     @Resource
     private SpaceUserAuthManager spaceUserAuthManager;
+
+    @Value("${ai.service.api-key:default-secret-key}")
+    private String aiServiceApiKey;
 
     @Override
     public PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, HttpServletRequest request) {
@@ -218,6 +223,45 @@ public class PictureApplicationServiceImpl extends ServiceImpl<PictureMapper, Pi
     @Override
     public Picture getPictureById(long id) {
         return pictureDomainService.getPictureById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public PictureVo aiPictureCallback(AiPictureCallbackRequest callbackRequest) {
+        // 1. API Key 鉴权
+        if (!aiServiceApiKey.equals(callbackRequest.getApiKey())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无效的API密钥");
+        }
+        log.info("AI回调API Key鉴权通过 - userId: {}", callbackRequest.getUserId());
+
+        // 2. 校验用户是否存在
+        Long userId = callbackRequest.getUserId();
+        ThrowUtils.throwIf(userId == null, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        User user = userApplicationService.getUser(userId);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        log.info("AI回调用户校验通过 - userId: {}, userName: {}", user.getId(), user.getUserName());
+
+        // 3. 校验图片URL
+        String url = callbackRequest.getUrl();
+        ThrowUtils.throwIf(url == null || url.isEmpty(), ErrorCode.PARAMS_ERROR, "图片URL不能为空");
+
+        // 4. 如果指定了spaceId，校验相册权限和额度
+        Long spaceId = callbackRequest.getSpaceId();
+        if (spaceId != null) {
+            Space space = spaceDomainService.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "相册不存在");
+            // 校验额度
+            if (space.getTotalCount() >= space.getMaxCount()) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "超出最大图片存储数量");
+            }
+            log.info("AI回调相册额度校验通过 - spaceId: {}, currentCount: {}/{}", 
+                    spaceId, space.getTotalCount(), space.getMaxCount());
+        }
+
+        // 5. 调用领域服务处理AI智能上传
+        PictureVo pictureVo = pictureDomainService.aiSmartUpload(callbackRequest, user);
+
+        return pictureVo;
     }
 
 }

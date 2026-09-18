@@ -156,4 +156,12 @@ public interface PictureApplicationService extends IService<Picture> {
     void updatePicture(Picture picture, HttpServletRequest request);
 
     Picture getPictureById(long id);
+
+    /**
+     * AI微服务回调-智能图片上传
+     *
+     * @param callbackRequest AI回调请求
+     * @return 图片信息
+     */
+    PictureVo aiPictureCallback(AiPictureCallbackRequest callbackRequest);
 }

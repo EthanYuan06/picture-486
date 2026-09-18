@@ -161,4 +161,20 @@ public interface PictureDomainService extends IService<Picture> {
     void updatePicture(Picture picture, HttpServletRequest request);
 
     Picture getPictureById(long id);
+
+    /**
+     * AI智能图片上传（从临时目录移动到正式目录，并填充AI生成的字段）
+     *
+     * @param callbackRequest AI回调请求
+     * @param user 用户信息
+     * @return 图片信息
+     */
+    PictureVo aiSmartUpload(AiPictureCallbackRequest callbackRequest, User user);
+
+    /**
+     * 处理AI审核回调
+     *
+     * @param callbackRequest AI审核回调请求
+     */
+    void handleAiReviewCallback(AiReviewCallbackRequest callbackRequest);
 }

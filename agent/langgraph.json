@@ -1,0 +1,7 @@
+{
+    "dependencies": ["."],
+    "graphs": {
+      "subarupic_ai": "app.agent.workflow:chat_graph"
+    },
+    "env": ".env"
+}

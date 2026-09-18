@@ -1,28 +1,68 @@
 version: '3.8'
 
 services:
-  # 前端服务
+  # ==================== 前端服务 ====================
   frontend:
-    image: ethanyuan06/ethanyuan-repo:frontend-0.0.1
+    build:
+      context: ${FRONTEND_DIR:-../../486-picture-frontend/subarupic}
+      dockerfile: Dockerfile
+    image: picture-486-frontend:0.0.1
     container_name: picture-486-frontend
     ports:
       - "5173:5173"
     environment:
       - BACKEND_API_URL=http://picture-486-backend:8124/api/
-      - BACKEND_WS_URL=http://picture-486-backend:8124/api/ws/
+      - BACKEND_WS_URL=http://picture-486-backend:8124
+      - AI_BACKEND_API_URL=http://ai-backend:8024/api/
     depends_on:
+      - ai-backend
       - app
     networks:
       - picture-network
     restart: unless-stopped
-  # Spring Boot 应用
+
+  # ==================== Python AI 后端 ====================
+  ai-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: picture-486-ai:0.0.1
+    container_name: picture-ai-microservice
+    ports:
+      - "8024:8024"
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      # 与 app(Spring Boot) 服务保持一致, 否则 AI 回调鉴权失败
+      - AI_SERVICE_API_KEY=prod-ai-service-secret-key-2026
+    depends_on:
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./chroma_data:/app/chroma_data
+    networks:
+      - picture-network
+    restart: unless-stopped
+  # ==================== Spring Boot 后端 ====================
   app:
-    image: ethanyuan06/ethanyuan-repo:backend-0.0.1
+    build:
+      context: ${BACKEND_DIR:-..}
+      dockerfile: Dockerfile
+    image: picture-486-backend:0.0.1
     container_name: picture-486-backend
     ports:
       - "18124:8124"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - AI_SERVICE_API_KEY=prod-ai-service-secret-key-2026
     depends_on:
       mysql:
         condition: service_healthy
@@ -34,7 +74,7 @@ services:
       - picture-network
     restart: unless-stopped
 
-  # MySQL 数据库
+  # ==================== MySQL 数据库 ====================
   mysql:
     image: mysql:8.0
     container_name: picture-mysql
@@ -47,7 +87,6 @@ services:
       - "13306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      # 确保 init.sql 放在项目根目录
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
@@ -59,9 +98,9 @@ services:
       - picture-network
     restart: unless-stopped
 
-  # Redis 缓存
+  # ==================== Redis 缓存 ====================
   redis:
-    image: redis:7-alpine
+    image: redis:latest
     container_name: picture-redis
     ports:
       - "16379:6379"
@@ -69,7 +108,7 @@ services:
       - picture-network
     restart: unless-stopped
 
-  # RabbitMQ 消息队列
+  # ==================== RabbitMQ 消息队列 ====================
   rabbitmq:
     image: rabbitmq:3-management
     container_name: picture-rabbitmq

@@ -12,8 +12,7 @@ import com.yuluo.picture486ddd.infrastructure.exception.ThrowUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,9 +23,9 @@ public class UrlPictureUpload extends PictureUploadTemplate{
         String fileUrl = (String) inputSource;
         ThrowUtils.throwIf(StrUtil.isBlank(fileUrl), ErrorCode.PARAMS_ERROR, "文件地址不能为空");
         try {
-            // 1. 验证 URL 格式
-            new URL(fileUrl); // 验证是否是合法的 URL
-        } catch (MalformedURLException e) {
+            // 1. 验证 URL 格式（使用 URI 替代已弃用的 URL 构造函数）
+            URI.create(fileUrl); // 验证是否是合法的 URI
+        } catch (IllegalArgumentException e) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件地址格式不正确");
         }
 

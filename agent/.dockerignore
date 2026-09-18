@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+.idea
+.langgraph*
+*.md
+*.log
+__pycache__
+.env
+.env.prod
+tests/
+app/test/
+node_modules/
+dist/

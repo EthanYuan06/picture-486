@@ -1,0 +1,62 @@
+[
+  {
+    "name": "A-无缓存查DB",
+    "mode": "单请求串行",
+    "iterations": 30,
+    "success": 30,
+    "failed": 0,
+    "qps": 19.25,
+    "avg_latency_ms": 51.95,
+    "p50_ms": 52.19,
+    "p95_ms": 55.65,
+    "p99_ms": 59.77,
+    "min_ms": 44.05,
+    "max_ms": 59.77,
+    "duration_s": 2.15,
+    "cache_stats_before": {
+      "l1Size": "1",
+      "l2ListPageKeys": 0,
+      "l2ListPageVoKeys": 1
+    }
+  },
+  {
+    "name": "B-Redis L2命中",
+    "mode": "单请求串行",
+    "iterations": 30,
+    "success": 30,
+    "failed": 0,
+    "qps": 31.96,
+    "avg_latency_ms": 31.29,
+    "p50_ms": 30.88,
+    "p95_ms": 39.2,
+    "p99_ms": 43.04,
+    "min_ms": 24.83,
+    "max_ms": 43.04,
+    "duration_s": 1.35,
+    "cache_stats_before": {
+      "l1Size": "1",
+      "l2ListPageKeys": 0,
+      "l2ListPageVoKeys": 1
+    }
+  },
+  {
+    "name": "C-Caffeine L1命中",
+    "mode": "单请求串行",
+    "iterations": 30,
+    "success": 30,
+    "failed": 0,
+    "qps": 41.45,
+    "avg_latency_ms": 24.13,
+    "p50_ms": 24.73,
+    "p95_ms": 28.8,
+    "p99_ms": 32.52,
+    "min_ms": 19.52,
+    "max_ms": 32.52,
+    "duration_s": 0.73,
+    "cache_stats_before": {
+      "l1Size": "1",
+      "l2ListPageKeys": 0,
+      "l2ListPageVoKeys": 1
+    }
+  }
+]

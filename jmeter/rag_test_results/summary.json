@@ -1,0 +1,750 @@
+{
+  "generated_at": "2026-09-15 17:56:47",
+  "vector_count": 61,
+  "config": {
+    "top_k": 10,
+    "default_expected_count": 5,
+    "user_id": 1987399165046960129,
+    "e2e_base_url": "http://localhost:8024/api",
+    "similarity_false_positive_threshold": 0.55
+  },
+  "retrieval": [
+    {
+      "id": "T1-01",
+      "mode": "text",
+      "subtype": "专名直搜",
+      "query": "找5张安和昴的图",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 7,
+      "relevant_ids": [
+        "1993143172167766017",
+        "2013170441124786177",
+        "2028104236907069441",
+        "2028104959434653698",
+        "2028345478970564609",
+        "2030993776289648641",
+        "2056968459472216066"
+      ],
+      "max_sim": 0.453,
+      "before": {
+        "top1": 0,
+        "hit": 1,
+        "precision": 0.3,
+        "recall": 0.42857142857142855,
+        "mrr": 0.25,
+        "n_rel": 7,
+        "n_ret": 50,
+        "hits_in_topk": 3
+      },
+      "after": {
+        "top1": 0,
+        "hit": 1,
+        "precision": 0.2,
+        "recall": 0.2857142857142857,
+        "mrr": 0.5,
+        "n_rel": 7,
+        "n_ret": 10,
+        "hits_in_topk": 2
+      },
+      "top_ret": [
+        "1992936686623789058",
+        "2028104226656190465",
+        "2028104218498269185",
+        "1993143172167766017",
+        "2028104236907069441"
+      ]
+    },
+    {
+      "id": "T1-02",
+      "mode": "text",
+      "subtype": "专名直搜",
+      "query": "搜井芹仁菜的图",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 1,
+      "relevant_ids": [
+        "2015280389396836353"
+      ],
+      "max_sim": 0.4487,
+      "before": {
+        "top1": 0,
+        "hit": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.07692307692307693,
+        "n_rel": 1,
+        "n_ret": 30,
+        "hits_in_topk": 0
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 10,
+        "hits_in_topk": 1
+      },
+      "top_ret": [
+        "2056206148713213953",
+        "1992936686623789058",
+        "2028104236907069441",
+        "2028104226656190465",
+        "1992935904910381058"
+      ]
+    },
+    {
+      "id": "T2-01",
+      "mode": "text",
+      "subtype": "外观属性",
+      "query": "找拿着烈酒、甩辫子的二次元角色",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 1,
+      "relevant_ids": [
+        "2028345478970564609"
+      ],
+      "max_sim": 0.5349,
+      "before": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 30,
+        "hits_in_topk": 1
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 10,
+        "hits_in_topk": 1
+      },
+      "top_ret": [
+        "2028345478970564609",
+        "1992936686623789058",
+        "2013170455444140034",
+        "1993143172167766017",
+        "2028104959434653698"
+      ]
+    },
+    {
+      "id": "T3-01",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找海边约会的少女",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 1,
+      "relevant_ids": [
+        "1993142534226710529"
+      ],
+      "max_sim": 0.5685,
+      "before": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 30,
+        "hits_in_topk": 1
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 10,
+        "hits_in_topk": 1
+      },
+      "top_ret": [
+        "1993142534226710529",
+        "2008918856181985282",
+        "1993144891501056001",
+        "1992936686623789058",
+        "1991690537371561986"
+      ]
+    },
+    {
+      "id": "T3-02",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找夜晚的城市街景",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 3,
+      "relevant_ids": [
+        "1992886379889954817",
+        "1992886903515254785",
+        "1992887064958210050"
+      ],
+      "max_sim": 0.4856,
+      "before": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 3,
+        "n_ret": 30,
+        "hits_in_topk": 3
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 3,
+        "n_ret": 10,
+        "hits_in_topk": 3
+      },
+      "top_ret": [
+        "1992886903515254785",
+        "1992887064958210050",
+        "1992886379889954817",
+        "1993144891501056001",
+        "2028104226656190465"
+      ]
+    },
+    {
+      "id": "T3-03",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找学校的夕阳",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 1,
+      "relevant_ids": [
+        "1992558827061338113"
+      ],
+      "max_sim": 0.5827,
+      "before": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 30,
+        "hits_in_topk": 1
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 10,
+        "hits_in_topk": 1
+      },
+      "top_ret": [
+        "1992558827061338113",
+        "2056206148713213953",
+        "1993142534226710529",
+        "1992936686623789058",
+        "1991690537371561986"
+      ]
+    },
+    {
+      "id": "T4-01",
+      "mode": "text",
+      "subtype": "风格分类",
+      "query": "找二次元壁纸",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 8,
+      "relevant_ids": [
+        "1992884230057496578",
+        "1992886379889954817",
+        "1992886903515254785",
+        "1992887064958210050",
+        "1993142534226710529",
+        "1993143172167766017",
+        "1993144891501056001",
+        "2028104959434653698"
+      ],
+      "max_sim": 0.4704,
+      "before": {
+        "top1": 0,
+        "hit": 1,
+        "precision": 0.3,
+        "recall": 0.375,
+        "mrr": 0.5,
+        "n_rel": 8,
+        "n_ret": 50,
+        "hits_in_topk": 3
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 0.125,
+        "mrr": 1.0,
+        "n_rel": 8,
+        "n_ret": 10,
+        "hits_in_topk": 1
+      },
+      "top_ret": [
+        "1992936686623789058",
+        "1993142534226710529",
+        "2028104959434653698",
+        "2008922176577581058",
+        "2028107959951659009"
+      ]
+    },
+    {
+      "id": "T5-01",
+      "mode": "text",
+      "subtype": "口语比喻",
+      "query": "那张竖小指的动漫表情包",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 1,
+      "relevant_ids": [
+        "2028104226656190465"
+      ],
+      "max_sim": 0.5507,
+      "before": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 30,
+        "hits_in_topk": 1
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 10,
+        "hits_in_topk": 1
+      },
+      "top_ret": [
+        "2028104226656190465",
+        "1993143172167766017",
+        "2008922149234913282",
+        "2013189408740552705",
+        "1992936686623789058"
+      ]
+    },
+    {
+      "id": "T5-02",
+      "mode": "text",
+      "subtype": "口语比喻",
+      "query": "摩天轮上的心动瞬间",
+      "image_url": null,
+      "negative": false,
+      "n_rel": 1,
+      "relevant_ids": [
+        "1993144891501056001"
+      ],
+      "max_sim": 0.4929,
+      "before": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 30,
+        "hits_in_topk": 1
+      },
+      "after": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.1,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 10,
+        "hits_in_topk": 1
+      },
+      "top_ret": [
+        "1993144891501056001",
+        "1992886379889954817",
+        "1992887064958210050",
+        "1992936686623789058",
+        "2028104226656190465"
+      ]
+    },
+    {
+      "id": "T6-01",
+      "mode": "text",
+      "subtype": "负样本",
+      "query": "找几张真实猫咪的照片",
+      "image_url": null,
+      "negative": true,
+      "n_rel": 0,
+      "relevant_ids": [],
+      "max_sim": 0.433,
+      "before": {
+        "top1": 0,
+        "hit": 0,
+        "precision": 0.0,
+        "recall": null,
+        "mrr": 0.0,
+        "n_rel": 0,
+        "n_ret": 30,
+        "hits_in_topk": 0
+      },
+      "after": null,
+      "top_ret": [
+        "1992884230057496578",
+        "2028104218498269185",
+        "2056206148713213953",
+        "1992936686623789058",
+        "1993142534226710529"
+      ]
+    },
+    {
+      "id": "I1-01",
+      "mode": "image",
+      "subtype": "以图搜图-同角色",
+      "query": "找和这张同一个角色的其它图",
+      "image_url": "https://yuluo-picture-1383397986.cos.ap-guangzhou.myqcloud.com/public/2028102956163760129/2026-03-01_Osl0ENDRpZnriNbk.webp",
+      "negative": false,
+      "n_rel": 6,
+      "relevant_ids": [
+        "1993143172167766017",
+        "2013170441124786177",
+        "2028104236907069441",
+        "2028345478970564609",
+        "2030993776289648641",
+        "2056968459472216066"
+      ],
+      "max_sim": 0.8154,
+      "before": {
+        "top1": 0,
+        "hit": 1,
+        "precision": 0.2,
+        "recall": 0.3333333333333333,
+        "mrr": 0.25,
+        "n_rel": 6,
+        "n_ret": 49,
+        "hits_in_topk": 2
+      },
+      "after": {
+        "top1": 0,
+        "hit": 1,
+        "precision": 0.2,
+        "recall": 0.3333333333333333,
+        "mrr": 0.25,
+        "n_rel": 6,
+        "n_ret": 10,
+        "hits_in_topk": 2
+      },
+      "top_ret": [
+        "2008918899081326593",
+        "2008918873714176001",
+        "2027595105649504258",
+        "2056968459472216066",
+        "2013170455444140034"
+      ]
+    }
+  ],
+  "e2e": [
+    {
+      "id": "T1-01",
+      "mode": "text",
+      "subtype": "专名直搜",
+      "query": "找5张安和昴的图",
+      "negative": false,
+      "n_rel": 7,
+      "returned": 3,
+      "ranked_ids": [
+        "2028104218498269185",
+        "2013170441124786177",
+        "2028107959951659009"
+      ],
+      "reply_head": "以下是为您找到的安和昴的图片： [1] 图片名称：安和猫 [2] 图片名称：大和昴子_1_Lucky 13_来自小红书网",
+      "metrics": {
+        "top1": 0,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 0.14285714285714285,
+        "mrr": 0.5,
+        "n_rel": 7,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T1-02",
+      "mode": "text",
+      "subtype": "专名直搜",
+      "query": "搜井芹仁菜的图",
+      "negative": false,
+      "n_rel": 1,
+      "returned": 3,
+      "ranked_ids": [
+        "2015280389396836353",
+        "2013170423101861890",
+        "2008922168709066753"
+      ],
+      "reply_head": "以下是为您找到的井芹仁菜的图片：  [1] 图片名称：井芹仁菜【新春限定】 [2] 图片名称：Image_1766801",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T2-01",
+      "mode": "text",
+      "subtype": "外观属性",
+      "query": "找拿着烈酒、甩辫子的二次元角色",
+      "negative": false,
+      "n_rel": 1,
+      "returned": 3,
+      "ranked_ids": [
+        "2028345478970564609",
+        "2015280368412733442",
+        "2013170435084988417"
+      ],
+      "reply_head": "以下是为您找到的拿着烈酒、甩辫子的二次元角色的图片： [1] 图片名称：1770269057856，简介：拿着96度烈酒",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T3-01",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找海边约会的少女",
+      "negative": false,
+      "n_rel": 1,
+      "returned": 3,
+      "ranked_ids": [
+        "1993142534226710529",
+        "2008918856181985282",
+        "2013170423101861890"
+      ],
+      "reply_head": "以下是为您找到的海边约会的少女的图片： [1] 图片名称：与你在海边的时光，简介：流萤请求你给她拍照，她很珍惜这一次的海",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T3-02",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找夜晚的城市街景",
+      "negative": false,
+      "n_rel": 3,
+      "returned": 3,
+      "ranked_ids": [
+        "1992886903515254785",
+        "1992887064958210050",
+        "1992886379889954817"
+      ],
+      "reply_head": "以下是为您找到的夜晚的城市街景的图片： [1] 图片名称：新加坡，简介：2025.10.23 新加坡街景 [2] 图片名",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 3,
+        "n_ret": 3,
+        "hits_in_topk": 3
+      },
+      "error": null
+    },
+    {
+      "id": "T3-03",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找学校的夕阳",
+      "negative": false,
+      "n_rel": 1,
+      "returned": 3,
+      "ranked_ids": [
+        "1992558827061338113",
+        "2008922158915366914",
+        "2008922176577581058"
+      ],
+      "reply_head": "以下是为您找到的学校夕阳的图片： [1] 图片名称：夕阳，简介：沈阳某学校的夕阳 [2] 图片名称：IMG_202512",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T4-01",
+      "mode": "text",
+      "subtype": "风格分类",
+      "query": "找二次元壁纸",
+      "negative": false,
+      "n_rel": 8,
+      "returned": 3,
+      "ranked_ids": [
+        "2028104959434653698",
+        "2008918899081326593",
+        "2013189396509962242"
+      ],
+      "reply_head": "以下是为您找到的二次元壁纸的图片： [1] 图片名称：486壁纸，简介：Subaru [2] 图片名称：17655361",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 0.125,
+        "mrr": 1.0,
+        "n_rel": 8,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T5-01",
+      "mode": "text",
+      "subtype": "口语比喻",
+      "query": "那张竖小指的动漫表情包",
+      "negative": false,
+      "n_rel": 1,
+      "returned": 3,
+      "ranked_ids": [
+        "2028104226656190465",
+        "2015282874245132290",
+        "2013189396509962242"
+      ],
+      "reply_head": "以下是为您找到的竖小指的动漫表情包的图片：  [1] 图片名称：你看，又竖小指 [2] 图片名称：8 [3] 图片名称：",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T5-02",
+      "mode": "text",
+      "subtype": "口语比喻",
+      "query": "摩天轮上的心动瞬间",
+      "negative": false,
+      "n_rel": 1,
+      "returned": 3,
+      "ranked_ids": [
+        "1993144891501056001",
+        "2008918918517731330",
+        "2008918856181985282"
+      ],
+      "reply_head": "以下是为您找到的摩天轮上的心动瞬间的图片：  [1] 图片名称：心动时刻，简介：千咲邀请你乘坐穗波市的摩天轮，是有什么想",
+      "metrics": {
+        "top1": 1,
+        "hit": 1,
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "n_rel": 1,
+        "n_ret": 3,
+        "hits_in_topk": 1
+      },
+      "error": null
+    },
+    {
+      "id": "T6-01",
+      "mode": "text",
+      "subtype": "负样本",
+      "query": "找几张真实猫咪的照片",
+      "negative": true,
+      "n_rel": 0,
+      "returned": 3,
+      "ranked_ids": [
+        "2028104218498269185",
+        "1992884230057496578",
+        "2015280324682919938"
+      ],
+      "reply_head": "以下是为您找到的真实猫咪的图片： [1] 图片名称：安和猫 [2] 图片名称：芝士雪豹，简介：雪豹闭嘴 [3] 图片名称",
+      "metrics": {
+        "top1": 0,
+        "hit": 0,
+        "precision": 0.0,
+        "recall": null,
+        "mrr": 0.0,
+        "n_rel": 0,
+        "n_ret": 3,
+        "hits_in_topk": 0
+      },
+      "error": null
+    },
+    {
+      "id": "I1-01",
+      "mode": "image",
+      "subtype": "以图搜图-同角色",
+      "query": "找和这张同一个角色的其它图",
+      "negative": false,
+      "n_rel": 6,
+      "returned": 3,
+      "ranked_ids": [
+        "2015280324682919938",
+        "2015282637799632898",
+        "1992937383251546114"
+      ],
+      "reply_head": "以下是为您找到的同一角色的图片： [1] 图片名称：艾玛玛玛玛玛玛玛玛玛玛玛玛玛玛玛玛 [2] 图片名称：4 [3] 图",
+      "metrics": {
+        "top1": 0,
+        "hit": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "n_rel": 6,
+        "n_ret": 3,
+        "hits_in_topk": 0
+      },
+      "error": null
+    }
+  ]
+}

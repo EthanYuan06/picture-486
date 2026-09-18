@@ -1,0 +1,113 @@
+{
+  "config": {
+    "top_k": 10,
+    "default_expected_count": 5,
+    "user_id": 1987399165046960129,
+    "e2e_base_url": "http://localhost:8024/api",
+    "similarity_false_positive_threshold": 0.55
+  },
+  "_说明": "relevance.keywords 会在 name/introduction/tags 三个字段做子串匹配，命中任一 keyword 即视为相关；negative=true 表示库里不应有命中（负样本）；image 模式用 query_image_name 从向量库解析出查询图 URL。",
+  "queries": [
+    {
+      "id": "T1-01",
+      "mode": "text",
+      "subtype": "专名直搜",
+      "query": "找5张安和昴的图",
+      "expected_count": 5,
+      "relevance": {"keywords": ["昴", "Subaru"], "fields": ["name", "introduction", "tags"]},
+      "negative": false
+    },
+    {
+      "id": "T1-02",
+      "mode": "text",
+      "subtype": "专名直搜",
+      "query": "搜井芹仁菜的图",
+      "expected_count": 3,
+      "relevance": {"keywords": ["井芹仁菜"], "fields": ["name", "introduction", "tags"]},
+      "negative": false
+    },
+    {
+      "id": "T2-01",
+      "mode": "text",
+      "subtype": "外观属性",
+      "query": "找拿着烈酒、甩辫子的二次元角色",
+      "expected_count": 3,
+      "relevance": {"keywords": ["烈酒", "辫子"], "fields": ["introduction", "name", "tags"]},
+      "negative": false
+    },
+    {
+      "id": "T3-01",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找海边约会的少女",
+      "expected_count": 3,
+      "relevance": {"keywords": ["海边"], "fields": ["name", "introduction"]},
+      "negative": false
+    },
+    {
+      "id": "T3-02",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找夜晚的城市街景",
+      "expected_count": 3,
+      "relevance": {"keywords": ["街景", "夜生活", "新加坡", "吉隆坡"], "fields": ["name", "introduction"]},
+      "negative": false
+    },
+    {
+      "id": "T3-03",
+      "mode": "text",
+      "subtype": "场景氛围",
+      "query": "找学校的夕阳",
+      "expected_count": 3,
+      "relevance": {"keywords": ["夕阳"], "fields": ["name", "introduction"]},
+      "negative": false
+    },
+    {
+      "id": "T4-01",
+      "mode": "text",
+      "subtype": "风格分类",
+      "query": "找二次元壁纸",
+      "expected_count": 5,
+      "relevance": {"keywords": ["壁纸"], "fields": ["tags", "name"]},
+      "negative": false
+    },
+    {
+      "id": "T5-01",
+      "mode": "text",
+      "subtype": "口语比喻",
+      "query": "那张竖小指的动漫表情包",
+      "expected_count": 3,
+      "relevance": {"keywords": ["小指"], "fields": ["name", "introduction"]},
+      "negative": false
+    },
+    {
+      "id": "T5-02",
+      "mode": "text",
+      "subtype": "口语比喻",
+      "query": "摩天轮上的心动瞬间",
+      "expected_count": 3,
+      "relevance": {"keywords": ["摩天轮", "心动"], "fields": ["name", "introduction"]},
+      "negative": false
+    },
+    {
+      "id": "T6-01",
+      "mode": "text",
+      "subtype": "负样本",
+      "query": "找几张真实猫咪的照片",
+      "expected_count": 3,
+      "relevance": {"keywords": [], "fields": []},
+      "negative": true
+    },
+    {
+      "id": "I1-01",
+      "mode": "image",
+      "subtype": "以图搜图-同角色",
+      "query_image_name": "486壁纸",
+      "query_text": "找和这张同一个角色的其它图",
+      "expected_count": 5,
+      "relevance": {"keywords": ["昴", "Subaru"], "fields": ["name", "introduction", "tags"]},
+      "exclude_self": true,
+      "negative": false
+    }
+  ]
+}

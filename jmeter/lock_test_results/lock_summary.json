@@ -1,0 +1,15 @@
+{
+  "base_url": "http://localhost:8123/api",
+  "account": "locktest4487",
+  "user_id": 2099694752982507522,
+  "db_private_space_count": 5,
+  "concurrency": 30,
+  "success": 5,
+  "limit_rejected": 25,
+  "lock_timeout": 0,
+  "other": 0,
+  "other_msgs": {},
+  "wall_time_ms": 445.69,
+  "latency_avg_ms": 328.22,
+  "latency_max_ms": 442.11
+}

@@ -4,7 +4,7 @@ services:
   # ==================== 前端服务 ====================
   frontend:
     build:
-      context: ${FRONTEND_DIR:-../../486-picture-frontend/subarupic}
+      context: ${FRONTEND_DIR:-../486-picture-frontend}
       dockerfile: Dockerfile
     image: picture-486-frontend:0.0.1
     container_name: picture-486-frontend

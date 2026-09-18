@@ -35,14 +35,14 @@ echo "  ✓ .env 存在"
 
 # ==================== 2. 校验构建上下文目录 ====================
 echo "[2/5] 校验前端/后端构建上下文 ..."
-# 从 .env 读取 FRONTEND_DIR (相对 agent 目录), 默认 ../../486-picture-frontend/subarupic
+# 从 .env 读取 FRONTEND_DIR (相对 agent 目录), 默认 ../486-picture-frontend
 FRONTEND_DIR="$(grep '^FRONTEND_DIR=' "$AGENT_DIR/.env" | head -n1 | cut -d= -f2-)"
-FRONTEND_DIR="${FRONTEND_DIR:-../../486-picture-frontend/subarupic}"
+FRONTEND_DIR="${FRONTEND_DIR:-../486-picture-frontend}"
 FRONTEND_ABS="$(cd "$AGENT_DIR" && cd "$FRONTEND_DIR" 2>/dev/null && pwd || echo "")"
 if [ -z "$FRONTEND_ABS" ] || [ ! -f "$FRONTEND_ABS/Dockerfile" ]; then
   echo "  ✗ 错误: 未找到前端工程 Dockerfile" >&2
   echo "    期望路径: $AGENT_DIR/$FRONTEND_DIR" >&2
-  echo "    请确认前端工程与后端为同级目录, 或修改 agent/.env 里的 FRONTEND_DIR" >&2
+  echo "    请确认前端工程位于后端根目录下的 486-picture-frontend, 或修改 agent/.env 里的 FRONTEND_DIR" >&2
   exit 1
 fi
 echo "  ✓ 前端工程: $FRONTEND_ABS"

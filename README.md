@@ -1,166 +1,191 @@
-# 昴云相册\-智能云图片管理平台
+<div align="center">   <img src="./image/logo.ico" width="200"/>   <h1>昴云 · 智能 AI 云图库</h1> </div>
 
 
 
-## 📌 项目概述
+## 🎤 项目介绍
+昴云 · 智能 AI 云图库，由 Java 21 + Spring Boot 3 开发的一款存放大量图片素材的智能云图片存储平台，支持用户将图片素材上传到公共图库，创建个人相册并管理，建立多人协作相册等功能，项目为对传统业务智能化升级，引入 AI 智能体模块，基于 LangGraph 编排开发，支持一句话上传图片、语义搜图、动漫图片与风景分析及 AI 审核功能。<font style="color:rgb(15, 17, 21);">
 
-基于 **Java 21（虚拟线程） \+ SpringBoot 3 \+ MyBatis\-Plus \+ Redis \+ RabbitMQ \+ 腾讯云 COS** 的企业级智能协同云图库平台。
+![](./image/login.png)
 
-项目采用**DDD领域驱动架构**设计，分为公共图库、私有图库和团队共享图库三大模块。用户可在平台公开上传和检索图片；管理员可以上传、审核和管理分析图片。个人用户可将图片上传至私有空间进行批量管理、多维检索、编辑和分析；企业可开通团队相册并邀请成员，实现多人共同管理图库。
+<font style="color:rgb(51, 51, 51);">核心能力：</font>
 
-项目已部署上线，应用场景广泛，可作为公开素材网站、个人相册、企业素材库等。
+1. 【公共素材库】拥有海量图片的素材库，对所有用户公开，每个人都可以往公共图库上传自己的图片
 
----
+![](./image/main.png)
 
+2. 【个人相册】仅对当前用户开放的图库，普通用户最多可创建 5 个。相册中按时间对照片进行分类，方便用户查看
 
+![](./image/album-page.png)
 
-## 🧑‍💻 我的职责与贡献
+![](./image/my-album.png)
 
-|模块|我的工作|
-|---|---|
-|**领域建模**|独立划分图片、相册、用户、消息四个限界上下文，实现充血实体与领域服务|
-|**多级缓存架构**|设计 Caffeine（L1）\+ Redis（L2）多级缓存，缓存命中率 100%，并解决击穿/雪崩|
-|**异步 AI 任务**|基于 RabbitMQ 解耦图片上传与 AI 描述生成，手动 ACK \+ 重试机制保证可靠性|
-|**并发安全**|使用 Redisson 分布式锁 \+ 编程式事务，保证“用户最多创建 5 个相册”的业务约束|
-|**权限控制**|Sa\-Token 方法级鉴权 \+ RBAC 角色权限，实现相册创建者/管理员/访客三层隔离|
-|**性能优化**|虚拟线程处理批量上传；批量查询 \+ Map 集合解决 N\+1 问题；数据万象压缩图片|
-|**实时推送**|WebSocket 推送 AI 任务进度，用户端实时感知|
-|**全流程测试**|JMeter 压测 300 并发上传，QPS 13\.1，错误率 0%；接口响应 P99 194ms|
+3. 【多人图库】对多个指定用户开放的图库，包含创建者、管理员、访客三个权限等级，除访客外可上传图片到图库中
 
----
+![](./image/team-album.png)
 
+![](./image/member-checking.png)
 
+智能体能力：
 
-## 🏗️ 项目架构图
+<font style="color:rgb(15, 17, 21);">针对传统图库“搜图难、上传填写繁琐、人工审核效率低”的痛点，本项目引入了 AI 智能体能力，实现了从“纯手动管理”到“对话式交互”的智能化升级。在提供基础图片上传、展示与管理功能的同时，系统支持</font>**<font style="color:rgb(15, 17, 21);">对话式搜图</font>**<font style="color:rgb(15, 17, 21);">（基于内容理解，支持动漫识图、风景辨认与通用分析）、</font>**<font style="color:rgb(15, 17, 21);">一句话上传</font>**<font style="color:rgb(15, 17, 21);">（AI 自动生成图片信息，用户确认后上传）以及 </font>**<font style="color:rgb(15, 17, 21);">AI 智能审核</font>**<font style="color:rgb(15, 17, 21);">，大幅降低了用户的操作成本并提升了管理效率。</font>
 
-![subarupic](./images/subarupic.png)
+<font style="color:rgb(15, 17, 21);">以下是 AI 智能模块的项目展示：</font>
 
+![](./image/agent.png)
 
+4. 【语义搜索】：用户能直接与 AI 图库助手对话，用自然语言或上传一张图片进行搜图，AI 会给出贴合描述的多张图片
 
-## 🎯 核心业务功能
+![](./image/search-by-word.png)
 
-|功能|说明|
-|---|---|
-|图片上传|单次/批量上传；上传前调用阿里云多模态 AI 自动生成简介（异步处理）；图片存储于腾讯云 COS，数据库仅存 URL|
-|图片检索|按名称/简介模糊搜索，多条件筛选；图片经数据万象无损压缩，体积减少 90%|
-|相册管理|创建/编辑/分类；Sa\-Token 鉴权保证私人相册仅创建者与管理员可访问|
-|多人相册协作|邀请成员、分配角色（创建者/管理员/访客）；基于 RBAC 实现权限隔离|
-|AI 进度实时推送|用户上传后立即返回，后台 AI 生成简介；通过 WebSocket 推送生成状态，用户无需等待|
+![](./image/picture.png)
 
----
+5. 【一句话上传】：为了解决手动填图片信息上传的麻烦，用户可选择直接将一张图发给 AI ，并表明上传行为，AI 会自动分析图片并填充信息，经用户确认或修改后，一键上传
 
+![](./image/auto-filling.png)
 
+![](./image/detail-generated-by-ai.png)
 
-## ⚡ 项目亮点
+6. 【图片分析】：体验增强功能，已包含动漫角色识图、风景分析两类。用户给一个动漫人物图片，AI 能基于搜索结果回答用户；用户问图中景点在哪，AI 会准确回答地点与简略的旅游攻略
 
-### 1\. DDD 领域驱动设计
+![](./image/anime-search.png)
 
-- **依赖倒置**：图片领域服务不直接依赖仓储实现，而是依赖仓储接口（位于领域层），基础设施层实现该接口 – 符合整洁架构。
+![](./image/landscape-search.png)
 
-- **充血模型**：`Picture` 实体包含 `validate()`、`renameBatch()` 等业务方法，避免 service 层臃肿。
+7. 【AI 审核】：上传的图片会经过 AI 审核，以管理员手动审核兜底，实现大量图片上传后的审核自动化，大幅解放管理员的双手
 
-### 2\. 高并发性能优化
+![](./image/review-by-ai.png)
 
-- **虚拟线程**：图片上传涉及多次网络 IO（调用 AI、上传 COS），使用虚拟线程代替平台线程，并发处理能力提升 **3 倍**（对比传统线程池）。
+<font style="color:rgb(51, 51, 51);">其他功能：</font>
 
-- **多级缓存**：Caffeine 本地缓存（1 - 3 分钟过期）\+ Redis（3 - 5 分钟过期）
++ <font style="color:rgb(51, 51, 51);">个人中心：支持用户修改个人信息</font>
 
-- **Cache\-Aside 模式**：写数据库后主动删除缓存，而非更新，避免数据不一致。
-- **防数据重复**：创建相册时，使用 Redisson 分布式锁，只有一个线程去查数据库，其他线程等待。
+![](./image/information.png)
 
-- **数据库优化**：查询图片列表时，先查出所有图片的 `userId`，去重后批量查询用户信息，**避免 N\+1**。
++ <font style="color:rgb(51, 51, 51);">图片下载：点击按钮立即下载图片到本地</font>
 
-### 3\. 异步解耦与消息可靠性
+![](./image/details.png)
 
-- **场景**：上传 100 张图片，若同步调用 AI 接口（单次 60ms）则会增加 6 秒延迟。
-- **解决**：上传后立即返回，发送消息到 RabbitMQ 队列，消费者异步生成 AI 简介。
++ <font style="color:rgb(51, 51, 51);">管理员专用：包含后台审核、系统分析、相册管理、用户管理、公共图库管理等功能</font>
 
-- **可靠性**：手动 ACK \+ `RetryTemplate` 重试 3 次 \+ 死信队列，保证消息不丢失。
+![](./image/system-analysis.png)
 
-- **限流**：`prefetch=1` 控制消费者一次只取一条消息，防止瞬时消息洪峰压垮消费者。
++ <font style="color:rgb(51, 51, 51);">⏰</font><font style="color:rgb(51, 51, 51);">喜欢 / 收藏：待开发</font>
++ <font style="color:rgb(51, 51, 51);">⏰</font><font style="color:rgb(51, 51, 51);">智能体图文搜索：</font><font style="color:rgb(51, 51, 51);"></font><font style="color:rgb(51, 51, 51);">检索精度有缺陷，待优化</font>
 
-### 4\. 并发数据一致性
+## 🔧 技术选型
+![](./image/infrastructure.jpeg)
 
-- **业务规则**：每个用户最多创建 5 个相册。
-**风险**：高并发下两个线程同时查询都发现相册数量为4，然后都插入 → 超限。
-**解决**：`Redisson` 分布式锁（key = `user:max:album:\{userId\}`）\+ 编程式事务（@Transactional 包裹查 \+ 插），锁内串行化操作。
+## ✨ 核心亮点
++ 【项目架构】
+    - 采用 Java + Python 双后端异构微服务，Python 智能体模块对传统业务智能升级
+    - 基于 DDD 架构设计 Spring Boot 后端，将业务细节下沉到领域层，适合跨部门多方协作
++ 【性能优化】
+    - 通过 Redis + Caffeine 多级缓存架构，将首页图片展示接口响应从 55ms 优化至 29ms
+    - 批量查用户 id + Map 存用户及其上传的图片，防止查图片时重复查用户信息这类 N+1 查询
+    - 图片经压缩为 webp 后展示，清晰度影响小同时大量减少带宽，提高响应速度
++ 【编码设计】
+    - AOP 权限校验：通过自定义注解 + 校验拦截器实现切面校验，无需在接口中重复写校验逻辑
+    - 模板方法设计上传模式，将上传流程抽象为模板，子类实现文件/URL两类上传方式
++ 【智能体模块】
+    - Supervisor 多智能体架构实现图片分析功能，新增分析类型只需要注册专家 Agent 并实现基类方法
+    - 多模态 RAG：让 AI 理解图片内容，再结合元信息匹配提高检索精确度
+    - AI 审核：Java 端将审核任务送入 RabbitMQ 消息队列，Python 智能体端进行消费，AI 审核完毕后回调 Java 端将结果写入数据库
 
----
-
-
-
-## 📊 性能测试指标（JMeter）
-
-|测试场景|关键指标|
-|---|---|
-|**图片上传**（300 并发，170KB 图片）|QPS: 13\.1 req/s，P95: 158ms，P99: 194ms，错误率 0%|
-|**图片列表查询**|单查询 3ms，并发平均 73ms，QPS: 3647 req/s，缓存命中率 100%（2000 图片分页 20 条）|
-|**AI 接口单次耗时**|60ms（异步化后主线程不阻塞）|
-
----
-
-
-
-## 🧱 项目结构（DDD 分层）
-
+## 📂 项目结构
 ```plain
-picture-486-backend/
-├── interfaces/          # 接口层：Controller、DTO、VO
-├── application/         # 应用层：业务流程编排（事务边界）
-├── domain/              # 领域层：核心业务逻辑（充血实体、领域服务、仓储接口）
-│   ├── picture/        # 图片领域
-│   ├── user/           # 用户领域
-│   ├── space/          # 相册空间领域
-│   └── message/        # 消息领域
-├── infrastructure/      # 基础设施层：仓储实现、MQ、Redis、COS 等
-└── shared/             # 共享层：通用工具、常量、异常
-
+486-picture-backend/                          
+│
+├── src/                                      ── Java 后端
+│   ├── main/java/com/yuluo/
+│   │   ├── Picture486BackendApplication.java     启动类
+│   │   └── picture486ddd/
+│   │       ├── interfaces/                       接口层
+│   │       │   ├── controller/                   REST 控制器
+│   │       │   ├── dto/  vo/                     入参 / 出参模型
+│   │       │   └── assembler/                    DTO-领域对象转换
+│   │       ├── application/service/              应用层（编排用例）
+│   │       ├── domain/                           领域层
+│   │       │   ├── picture/  space/              图片、空间域
+│   │       │   ├── user/  message/               用户、消息域
+│   │       │   └── constant/                     领域常量
+│   │       ├── infrastructure/                   基础设施层
+│   │       │   ├── mapper/  repository/          MyBatis-Plus 持久化
+│   │       │   ├── mq/                           RabbitMQ 生产/消费
+│   │       │   ├── websocket/                    WebSocket 推送
+│   │       │   ├── api/                          AI 微服务客户端
+│   │       │   ├── aop/  annotation/             切面（权限/日志）
+│   │       │   ├── config/  exception/           配置、全局异常
+│   │       │   └── common/  utils/               通用组件（Redis/COS/缓存）
+│   │       └── shared/manager/                   共享管理器
+│   ├── main/resources/
+│   │   ├── application.yml + -dev/-prod/-docker  多环境配置
+│   │   ├── mapper/*.xml                          5 个 SQL 映射
+│   │   ├── biz/spaceUserAuthConfig.json          空间权限矩阵
+│   │   └── static/tech-stack.html                技术栈架构图
+│   └── test/java/                                单元测试
+│
+├── agent/                                    ── Python AI 微服务（FastAPI + LangGraph）
+│   ├── app/
+│   │   ├── main.py                               FastAPI 入口
+│   │   ├── api/                                  chat.py / chat_sse.py / cos.py
+│   │   ├── agent/                                LangGraph 多子图
+│   │   │   ├── workflow.py  state.py  tool.py    主图编排 / 状态 / Tavily 工具
+│   │   │   ├── all_agent.py                      Supervisor 汇总
+│   │   │   ├── chat/                             对话子图（nodes/prompts）
+│   │   │   ├── rag/                              以图/文字检索子图
+│   │   │   ├── image_analysis/                   图片分析子图
+│   │   │   ├── image_upload/                     AI 上传子图（tool）
+│   │   │   ├── ai_review/                        内容安全审核子图
+│   │   │   ├── public_nodes/  prompts/           公共节点、提示词
+│   │   │   ├── model/model.py                    DeepSeek/Qwen/Embedding/Rerank
+│   │   │   └── config/                           LLM 参数
+│   │   ├── mcp/                                  MCP 客户端与 server 配置
+│   │   ├── config/redis_config.py                Redis Checkpointer
+│   │   ├── utils/  common/  entity/              向量化工具/通用/实体
+│   │   └── chroma_data/                          Chroma 本地持久化
+│   ├── pyproject.toml + uv.lock                  uv 依赖（Python 3.14）
+│   ├── langgraph.json                            LangGraph 图注册
+│   ├── Dockerfile  docker-compose.yml  init.sql  Agents.md
+│
+├── 486-picture-frontend/                     ── React 前端
+│   ├── src/
+│   │   ├── components/                           Assistant/Albums/PictureManage/
+│   │   │                                         HitlUpload/SpaceAnalyze 等 11 个模块
+│   │   ├── services/  stores/                    API 封装 / Zustand 状态
+│   │   ├── utils/  types/  static/               工具 / 类型 / 资源
+│   ├── vite.config.ts  tailwind.config.cjs       构建与样式
+│   ├── nginx/  Dockerfile  dist/                 反代与镜像
+│
+├── sql/                                        init.sql、测试数据
+├── jmeter/                                     性能测试（.jmx + 缓存/锁/RAG 评测脚本）
+├── image/                                      产品截图与架构图素材
+├── Dockerfile  deploy.sh  init.sql             Java 镜像与一键部署
+└── pom.xml                                     Maven 构建
 ```
 
----
-
-
-
-## 🚀 快速启动
-
-### 1\. 获取项目源码
-
+## 🚀 快速开始
 ```bash
-git clone https://github.com/EthanYuan06/picture-486.git
-cd picture-486
+## 环境要求
+
+| 环境    | 版本                                 |
+| ------- | ------------------------------------ |
+| JDK     | 21+                                  |
+| Maven   | 3.8+                                 |
+| Python  | 3.14+（uv）                          |
+| Node.js | 18+                                  |
+| Docker  | 24+（用于 MySQL / Redis / RabbitMQ） |
+
+## 克隆项目
+git clone https://github.com/EthanYuan06/picture-486.git 
+D:/Code/486-picture/486-picture-backend
+
+cd D:/Code/486-picture/486-picture-backend
+
+## Docker 一键启动
+cd agent
+docker compose up -d --build
+访问：http://localhost:5173
 ```
 
-### 2\. 一键启动项目
-
-```bash
-docker-compose -f docker-compose-public.yml up -d
-```
-
-### 3\. 访问前端页面
-
-```plain
-http://localhost:5173
-```
-
-**测试账号**
-
-管理员：Account：`nina1024` ；Password：`Nina1024`
-
-💡 如需查看 API 文档，启动后访问 `http://localhost:18124/api/doc.html`
-
----
 
 
-
-## 📎 其他
-
-**源码仓库**：[https://github\.com/EthanYuan06/picture\-486](https://github.com/EthanYuan06/picture-486)
-
-**技术选型对比**：
-
--   为什么用 RabbitMQ 而不是 Kafka？ —— 业务量适中，RabbitMQ 的 ACK 机制和死信队列更易实现可靠 AI 任务，且运维轻量。
-
--   为什么用虚拟线程？ —— IO 密集型场景（上传、调用 AI、存储）可大幅减少线程切换开销，代码无需改动，仅将 `@Async` 线程池替换为虚拟线程。
-
-
-**后续规划**：引入 Elasticsearch 实现以图搜图；增加对象存储直传减少服务器带宽。

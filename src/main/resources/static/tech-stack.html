@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>昴云相册 - 技术选型</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: #ffffff;
+    color: #1f2937;
+    padding: 56px 40px 40px;
+  }
+
+  .page { max-width: 1400px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 48px; }
+
+  header h1 {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #111827;
+  }
+
+  header p {
+    margin-top: 14px;
+    font-size: 19px;
+    color: #9ca3af;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+
+  .card {
+    border-radius: 20px;
+    padding: 32px 30px;
+  }
+
+  .card h2 {
+    display: flex;
+    align-items: center;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #111827;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 14px; }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 17px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .star { font-size: 14px; margin-right: 8px; }
+
+  /* 前端 - 红 */
+  .c-front  { background: #fdf0ee; }
+  .c-front  .dot { background: #e05d4a; }
+  .c-front  .tag { background: #f9ddd8; color: #b0402e; }
+  .c-front  .tag.core { background: #f8cfa6; }
+
+  /* Java后端 - 蓝 */
+  .c-java   { background: #eef3fb; }
+  .c-java   .dot { background: #3a6ea8; }
+  .c-java   .tag { background: #dbe6f5; color: #2f5a8c; }
+  .c-java   .tag.core { background: #cfe3f7; }
+
+  /* AI - 绿 */
+  .c-ai     { background: #eaf6ec; }
+  .c-ai     .dot { background: #2f9e5f; }
+  .c-ai     .tag { background: #d5eeda; color: #237a48; }
+  .c-ai     .tag.core { background: #c6ecd3; }
+
+  /* 数据与中间件 - 橙 */
+  .c-data   { background: #fdf3e3; }
+  .c-data   .dot { background: #d97e2c; }
+  .c-data   .tag { background: #f9e6c8; color: #a05f14; }
+  .c-data   .tag.core { background: #f6ddb0; }
+
+  /* 模型与向量 - 紫 */
+  .c-model  { background: #f3eefb; }
+  .c-model  .dot { background: #7c53b8; }
+  .c-model  .tag { background: #e6dcf6; color: #5c3a94; }
+  .c-model  .tag.core { background: #ddcdf2; }
+
+  /* 部署 - 灰 */
+  .c-deploy { background: #f1f2f4; }
+  .c-deploy .dot { background: #4b5563; }
+  .c-deploy .tag { background: #e2e4e8; color: #374151; }
+  .c-deploy .tag.core { background: #d6d9de; }
+
+  footer {
+    margin-top: 48px;
+    text-align: center;
+    font-size: 16px;
+    color: #b6bcc6;
+  }
+
+  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 720px)  { .grid { grid-template-columns: 1fr; } body { padding: 32px 16px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>昴云相册 - 技术选型</h1>
+    <p>React 前端 + Spring Boot 3 (DDD) + Python FastAPI · LangChain/LangGraph Agent · 全栈 AI 相册应用</p>
+  </header>
+
+  <div class="grid">
+    <section class="card c-front">
+      <h2><span class="dot"></span>前端</h2>
+      <div class="tags">
+        <span class="tag core"><span class="star">&#9733;</span>React 19 + TypeScript</span>
+        <span class="tag core"><span class="star">&#9733;</span>Vite</span>
+        <span class="tag">Zustand</span>
+        <span class="tag">Tailwind CSS</span>
+      </div>
+    </section>
+
+    <section class="card c-java">
+      <h2><span class="dot"></span>Java 后端</h2>
+      <div class="tags">
+        <span class="tag core"><span class="star">&#9733;</span>Spring Boot 3.5 · Java 21 虚拟线程</span>
+        <span class="tag core"><span class="star">&#9733;</span>MyBatis-Plus</span>
+        <span class="tag core"><span class="star">&#9733;</span>Sa-Token 认证</span>
+        <span class="tag">Spring WebSocket</span>
+        <span class="tag">Spring AMQP</span>
+        <span class="tag">Redisson 分布式锁</span>
+        <span class="tag">Caffeine 本地缓存</span>
+        <span class="tag">Knife4j 接口文档</span>
+        <span class="tag">Hutool · Lombok</span>
+      </div>
+    </section>
+
+    <section class="card c-ai">
+      <h2><span class="dot"></span>AI Agent 微服务</h2>
+      <div class="tags">
+        <span class="tag core"><span class="star">&#9733;</span>LangChain</span>
+        <span class="tag core"><span class="star">&#9733;</span>LangGraph Agent</span>
+        <span class="tag core"><span class="star">&#9733;</span>FastAPI · Python 3.14</span>
+        <span class="tag">Redis Checkpoint 会话持久化</span>
+        <span class="tag">MCP 工具协议</span>
+        <span class="tag">Tavily 联网搜索</span>
+      </div>
+    </section>
+
+    <section class="card c-model">
+      <h2><span class="dot"></span>模型与向量化</h2>
+      <div class="tags">
+        <span class="tag core"><span class="star">&#9733;</span>DeepSeek</span>
+        <span class="tag core"><span class="star">&#9733;</span>Qwen 多模态 · DashScope</span>
+        <span class="tag core"><span class="star">&#9733;</span>qwen3-vl 图文融合 Embedding</span>
+        <span class="tag">qwen3-vl Rerank 重排序</span>
+        <span class="tag">AI 内容安全审核</span>
+      </div>
+    </section>
+
+    <section class="card c-data">
+      <h2><span class="dot"></span>数据与中间件</h2>
+      <div class="tags">
+        <span class="tag core"><span class="star">&#9733;</span>MySQL 8.0</span>
+        <span class="tag core"><span class="star">&#9733;</span>Redis 缓存</span>
+        <span class="tag core"><span class="star">&#9733;</span>RabbitMQ 消息队列</span>
+        <span class="tag">腾讯云 COS 对象存储</span>
+        <span class="tag core"><span class="star">&#9733;</span>Chroma 向量库</span>
+        <span class="tag">Caffeine + Redis 两级缓存</span>
+      </div>
+    </section>
+
+    <section class="card c-deploy">
+      <h2><span class="dot"></span>部署上线</h2>
+      <div class="tags">
+        <span class="tag core"><span class="star">&#9733;</span>Docker Compose 多服务编排</span>
+        <span class="tag core"><span class="star">&#9733;</span>Nginx 反向代理</span>
+        <span class="tag">Maven 多阶段构建</span>
+        <span class="tag">uv 依赖管理</span>
+        <span class="tag">deploy.sh 一键部署</span>
+        <span class="tag">Git</span>
+      </div>
+    </section>
+  </div>
+
+  <footer>昴云相册（486-picture）· 技术栈架构图</footer>
+</div>
+</body>
+</html>

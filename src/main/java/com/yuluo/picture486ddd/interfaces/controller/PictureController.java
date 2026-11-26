@@ -5,6 +5,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import com.yuluo.picture486ddd.application.service.PictureApplicationService;
 import com.yuluo.picture486ddd.infrastructure.annotation.AuthCheck;
 import com.yuluo.picture486ddd.infrastructure.common.BaseResponse;
@@ -178,9 +179,8 @@ public class PictureController {
         Page<Picture> result = pictureDomainService.page(new Page<>(current, size),
                 pictureDomainService.getQueryWrapper(pictureQueryRequest));
         
-        // 更新本地缓存，设置随机过期时间1~3分钟
+        // 更新本地缓存，过期时间由 LOCAL_CACHE 的 Expiry 策略逐条随机
         String cacheValue = JSONUtil.toJsonStr(result);
-        long localCacheTtl = ThreadLocalRandom.current().nextLong(1, 4); // 1-3分钟（不包含4）
         LOCAL_CACHE.put(cacheKey, cacheValue);
 
         // 更新Redis缓存，设置随机过期时间3~5分钟
@@ -239,9 +239,8 @@ public class PictureController {
         Page<Picture> result = pictureDomainService.page(new Page<>(current, size),
                 pictureDomainService.getQueryWrapper(pictureQueryRequest));
 
-        // 更新本地缓存，设置随机过期时间1~3分钟
+        // 更新本地缓存，过期时间由 LOCAL_CACHE 的 Expiry 策略逐条随机
         String cacheValue = JSONUtil.toJsonStr(result);
-        long localCacheTtl = ThreadLocalRandom.current().nextLong(1, 4); // 1-3分钟（不包含4）
         LOCAL_CACHE.put(cacheKey, cacheValue);
 
         // 更新Redis缓存，设置随机过期时间3~5分钟
@@ -408,8 +407,23 @@ public class PictureController {
     private final Cache<String, String> LOCAL_CACHE =
             Caffeine.newBuilder().initialCapacity(1024)
                     .maximumSize(10000L)
-                    // 缓存随机1~3分钟移除，防止集体过期
-                    .expireAfterWrite(ThreadLocalRandom.current().nextLong(1, 4), TimeUnit.MINUTES)
+                    // 每条缓存写入时随机 1~3 分钟过期，防止集体过期
+                    .expireAfter(new Expiry<String, String>() {
+                        @Override
+                        public long expireAfterCreate(String key, String value, long currentTime) {
+                            return TimeUnit.MINUTES.toNanos(ThreadLocalRandom.current().nextLong(1, 4));
+                        }
+
+                        @Override
+                        public long expireAfterUpdate(String key, String value, long currentTime, long currentDuration) {
+                            return currentDuration;
+                        }
+
+                        @Override
+                        public long expireAfterRead(String key, String value, long currentTime, long currentDuration) {
+                            return currentDuration;
+                        }
+                    })
                     .build();
     /**
      * 清除指定前缀的缓存

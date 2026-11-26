@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <ul>
  *   <li>不走缓存：每波前调用 {@code /picture/cache/clear-all} 清空两级缓存，再用起跑门让所有线程
  *       同一瞬间发出相同查询，复现「缓存集体失效 -> 并发同时打 DB」的击穿开销；</li>
- *   <li>走缓存：预热后连续并发，全部命中 L1。</li>
+ *   <li>走缓存：预热后连续并发，绝大多数命中 L1；条目在波中途到期时会落到 L2，故统计口径记为「缓存命中」而非「L1 命中」。</li>
  * </ul>
  *
  * <p>运行前提：本地 MySQL(486_picture) 与 Redis(6379) 可访问，且存在管理员账号；依赖不可用时用例
@@ -157,17 +157,20 @@ class PictureCacheConcurrencyPerformanceTest {
         assertTrue(result.failed() == 0, "未命中波存在失败请求，无法证明并发穿透路径");
         assertEquals(1L, cacheStats().path("l2ListPageVoKeys").asLong(), "并发未命中后同一 key 只应回填一条 Redis 缓存");
 
-        log.info("[无缓存] 第{}波: 并发={}, 成功={}/{}, avg={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms, QPS={}",
+        log.info("[无缓存] 第{}波: 并发={}, 成功={}/{}, avg={}ms, min={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms, QPS={}",
                 wave, CONCURRENCY, result.ok(), CONCURRENCY, fmt(result.stats().avgMs()), fmt(result.stats().minMs()),
-                fmt(result.stats().p50Ms()), fmt(result.stats().p95Ms()), fmt(result.stats().maxMs()), fmt(result.stats().qps()));
+                fmt(result.stats().p50Ms()), fmt(result.stats().p95Ms()), fmt(result.stats().p99Ms()),
+                fmt(result.stats().maxMs()), fmt(result.stats().qps()));
         return result.latenciesMs();
     }
 
     /**
      * 命中场景：每波前补一次串行预热
      *
-     * <p>Controller 中 Caffeine 的 expireAfterWrite 是在 Bean 构造时用随机数取定的一次性值（1~4 分钟），
-     * 一旦某波开始前 L1 恰好过期，该波会静默退化到 L2 甚至 DB，「走缓存」的数据就失真了。</p>
+     * <p>Controller 的 Caffeine 用 {@code Expiry} 给每条缓存写入时随机 1~3 分钟过期，且
+     * {@code expireAfterUpdate} 保留剩余时长（预热用的 {@code put} 不会给快到期的条目续期）。
+     * 不补这一下，某波可能整条已过期而静默退化到 DB，「走缓存」的数据就失真了；
+     * 反过来，条目在波中途到期只会让该波混入少量 L2 命中，因此本场景记的是「缓存命中」而非「L1 命中」。</p>
      */
     private List<Long> runHitWave(int wave) throws Exception {
         warmUp();
@@ -177,9 +180,10 @@ class PictureCacheConcurrencyPerformanceTest {
         WaveResult result = runWave();
         assertTrue(result.failed() == 0, "命中波存在失败请求");
 
-        log.info("[走缓存] 第{}波: 并发={}, 成功={}/{}, avg={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms, QPS={}",
+        log.info("[走缓存] 第{}波: 并发={}, 成功={}/{}, avg={}ms, min={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms, QPS={}",
                 wave, CONCURRENCY, result.ok(), CONCURRENCY, fmt(result.stats().avgMs()), fmt(result.stats().minMs()),
-                fmt(result.stats().p50Ms()), fmt(result.stats().p95Ms()), fmt(result.stats().maxMs()), fmt(result.stats().qps()));
+                fmt(result.stats().p50Ms()), fmt(result.stats().p95Ms()), fmt(result.stats().p99Ms()),
+                fmt(result.stats().maxMs()), fmt(result.stats().qps()));
         return result.latenciesMs();
     }
 
@@ -336,7 +340,7 @@ class PictureCacheConcurrencyPerformanceTest {
                 CONCURRENCY, WAVES, missLatencies.size());
         log.info("不走缓存(并发击穿): avg={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms",
                 fmt(miss.avgMs()), fmt(miss.p50Ms()), fmt(miss.p95Ms()), fmt(miss.p99Ms()), fmt(miss.maxMs()));
-        log.info("走缓存(L1命中)     : avg={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms",
+        log.info("走缓存(L1为主)     : avg={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms",
                 fmt(hit.avgMs()), fmt(hit.p50Ms()), fmt(hit.p95Ms()), fmt(hit.p99Ms()), fmt(hit.maxMs()));
         log.info("平均延迟提升: {} 倍, P50 提升: {} 倍, P95 提升: {} 倍",
                 ratio(miss.avgMs(), hit.avgMs()), ratio(miss.p50Ms(), hit.p50Ms()), ratio(miss.p95Ms(), hit.p95Ms()));

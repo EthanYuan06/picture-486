@@ -60,11 +60,11 @@
 <!--            <artifactId>spring-session-data-redis</artifactId>-->
 <!--        </dependency>-->
 
-        <!--Redisson-->
-        <!-- https://mvnrepository.com/artifact/org.redisson/redisson-spring-boot-starter -->
+        <!--Redisson（仅核心包，手动装配 RedissonClient，避免 starter 的 RedissonConnectionFactory 顶掉 Lettuce 连接工厂）-->
+        <!-- https://mvnrepository.com/artifact/org.redisson/redisson -->
         <dependency>
             <groupId>org.redisson</groupId>
-            <artifactId>redisson-spring-boot-starter</artifactId>
+            <artifactId>redisson</artifactId>
             <version>3.23.5</version>
         </dependency>
 

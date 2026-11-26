@@ -9,15 +9,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -338,7 +332,7 @@ class PictureCacheConcurrencyPerformanceTest {
         log.info("==================== 两级缓存并发性能对比 ====================");
         log.info("接口: POST /api/picture/list/page/vo (公共图库主页, pageSize=20)");
         log.info("样本: {} 并发 x {} 波 = {} 请求/场景, 环境: 本机 MySQL + Redis"
-                + "（测试上下文用 Lettuce 工厂替代 Redisson，见类内 LettuceOnlyConfiguration 说明）",
+                + "（Redisson 已去 starter 化，测试与线上统一使用 Lettuce 连接工厂，见 RedissonConfig）",
                 CONCURRENCY, WAVES, missLatencies.size());
         log.info("不走缓存(并发击穿): avg={}ms, P50={}ms, P95={}ms, P99={}ms, max={}ms",
                 fmt(miss.avgMs()), fmt(miss.p50Ms()), fmt(miss.p95Ms()), fmt(miss.p99Ms()), fmt(miss.maxMs()));
@@ -406,27 +400,6 @@ class PictureCacheConcurrencyPerformanceTest {
         private static double percentile(long[] sorted, int p) {
             int index = (int) Math.ceil(p * sorted.length / 100.0) - 1;
             return sorted[Math.min(Math.max(index, 0), sorted.length - 1)];
-        }
-    }
-
-    /**
-     * 临时绕过（等待根治方案确认）：当前依赖组合下 StringRedisTemplate 实际使用
-     * Redisson 3.23.5 的 RedissonConnectionFactory，它与 spring-data-redis 3.5.4 新增的
-     * {@code pExpire(byte[], long, Condition)} 默认方法互相自调用，形成无限递归，
-     * 任何 {@code expire(Duration)} 都会抛 StackOverflowError —— Sa-Token 写会话即触发，登录必然 500，
-     * 本测试因此拿不到管理员会话。这里仅在测试上下文把工厂换回 Lettuce，使性能链路可测；
-     * 图片缓存自身的 {@code set(key,value,ttl,unit)} 在两种工厂下都正常，不影响被测路径的有效性。
-     */
-    @TestConfiguration
-    static class LettuceOnlyConfiguration {
-
-        @Bean
-        @Primary
-        LettuceConnectionFactory lettuceConnectionFactory(@Value("${spring.data.redis.host:localhost}") String host,
-                                                          @Value("${spring.data.redis.port:6379}") int port) {
-            RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration(host, port);
-            configuration.setDatabase(0);
-            return new LettuceConnectionFactory(configuration);
         }
     }
 }

@@ -56,7 +56,7 @@ L1 有两处代码层面的疏漏值得记一笔，面试被问到「你的缓�
 
 还有内存与序列化成本。每个缓存条目是整页 JSON 字符串，`maximumSize=10000` 只是条数上限不是字节上限，页大时内存不可控；每次命中都要用 hutool 反序列化重建 `Page<Picture>`，日期字段按默认规则还原，这部分 CPU 开销串行测出来只有零点几毫秒，并发时才显形。
 
-最后是这组数据本身不能代表什么：本机回环没有真实网络 RTT；单实例部署时 L1 命中率接近 100%，多实例下每台机器各自一份 L1，命中率会明显低于这里；测试上下文用的是 Lettuce 而不是线上配置的 Redisson；数据规模是本机 dev 库的公共图库全量过审数据，与线上量级不同。这几个限定条件任何一个变了，倍数都要重测。
+最后是这组数据本身不能代表什么：本机回环没有真实网络 RTT；单实例部署时 L1 命中率接近 100%，多实例下每台机器各自一份 L1，命中率会明显低于这里；测试当时为了绕过 Redisson 兼容缺陷在测试上下文换成了 Lettuce 工厂，与当时的线上配置不一致——该缺陷现已根治（见附录），现在测试与线上统一走 Lettuce；数据规模是本机 dev 库的公共图库全量过审数据，与线上量级不同。这几个限定条件任何一个变了，倍数都要重测。
 
 ## 五、面试追问预案
 
@@ -74,13 +74,13 @@ L1 有两处代码层面的疏漏值得记一笔，面试被问到「你的缓�
 
 **「为什么用 Redis 还额外加 Caffeine？」** Redis 是跨实例共享的，冷实例也能命中，但每次有网络往返和序列化；Caffeine 挡住最热的翻页流量，把 Redis 往返也省掉。实测这条链上 L1 相对 L2 的收益在串行口径下是 31ms → 24ms，量级不大但叠在首页 QPS 上值得。
 
-**「这组数据有什么地方不能信？」** 我会主动列三条：单实例所以 L1 命中率虚高；本机回环没有网络抖动；测试用的是 Lettuce 工厂，因为线上那套 Redisson 版本当前和 spring-data-redis 有兼容问题（见附录），这也是我接下来要修的事。
+**「这组数据有什么地方不能信？」** 我会主动列三条：单实例所以 L1 命中率虚高；本机回环没有网络抖动；测试当时用的是测试上下文里临时换上的 Lettuce 工厂，因为线上那套 Redisson starter 版本与 spring-data-redis 有兼容问题（见附录，该问题已根治，现在测试与线上统一走 Lettuce）。
 
 ## 附录 / 待办
 
-**缺陷：Redisson 3.23.5 与 spring-data-redis 3.5.4 不兼容，导致登录接口 500。** 现象是任何 `redisTemplate.expire(key, Duration)` 调用抛 `StackOverflowError`，栈顶在 `DefaultedRedisConnection.pExpire` 反复自调用；根因是 `redisson-spring-boot-starter` 注册的 `RedissonConnectionFactory` 顶掉了 Lettuce 成为默认连接工厂，而 Redisson 3.23.5 的 spring-data 适配层没有覆盖 Spring Data Redis 3.5 新增的 `pExpire(byte[], long, ExpirationOptions$Condition)` 默认方法，默认方法之间形成无限递归。诊断证据（临时用例实测）：`set(key, value, 30, TimeUnit.SECONDS)` 正常、`set(key, value, Duration)` 正常、`expire(key, Duration)` 崩溃。影响面是 Sa-Token 会话写入即触发，登录必然失败；图片缓存自身的 `set(..., ttl, unit)` 不受影响。
+**缺陷（已处理，2026-11-26）：Redisson 3.23.5 与 spring-data-redis 3.5.4 不兼容，导致登录接口 500。** 现象是任何 `redisTemplate.expire(key, Duration)` 调用抛 `StackOverflowError`，栈顶在 `DefaultedRedisConnection.pExpire` 反复自调用；根因是 `redisson-spring-boot-starter` 注册的 `RedissonConnectionFactory` 顶掉了 Lettuce 成为默认连接工厂，而 Redisson 3.23.5 的 spring-data 适配层没有覆盖 Spring Data Redis 3.5 新增的 `pExpire(byte[], long, ExpirationOptions$Condition)` 默认方法，默认方法之间形成无限递归。诊断证据（临时用例实测）：`set(key, value, 30, TimeUnit.SECONDS)` 正常、`set(key, value, Duration)` 正常、`expire(key, Duration)` 崩溃。影响面是 Sa-Token 会话写入即触发，登录必然失败；图片缓存自身的 `set(..., ttl, unit)` 不受影响。
 
-处理：按当前决定，只在测试上下文用 `@TestConfiguration` + `@Primary LettuceConnectionFactory` 绕过，使性能链路可测，生产代码与 `pom.xml` 未改动。待办是根治它，两个候选方案——升级 `redisson-spring-boot-starter` 到匹配 Spring Data Redis 3.5 的版本，或保留 Redisson 只做分布式锁、把连接工厂在生产配置里显式换回 Lettuce；无论哪种，都要回归 `SpaceApplicationServiceImpl` 里 `redissonClient.getLock` 的相册数量上限锁。
+处理（最终方案）：不去升级 starter 对齐版本矩阵，而是把 `redisson-spring-boot-starter` 直接换成裸包 `org.redisson:redisson`（版本保持 3.23.5），由新增的 `RedissonConfig` 手动装配 `RedissonClient`（复用 `spring.redisson.config` 的 YAML，`Config.fromYAML` 解析）。这样 spring-data 适配层从 classpath 上整个消失，连接工厂自然回到 Spring Boot 默认的 Lettuce，Sa-Token 登录链路不再经过任何 Redisson 代码；Redisson 仅剩 `SpaceApplicationServiceImpl` 的分布式锁在用，锁 API 与版本适配无关。测试类里的 `@TestConfiguration` Lettuce 绕过已同步删除，测试与线上统一走 Lettuce。回归项：登录接口 200、相册创建 `redissonClient.getLock` 正常、性能测试可复跑。
 
 **其他待办**：`clearCache` 的 `KEYS` 换 `SCAN`；未命中路径加互斥回源；把用户信息或 VO 结果纳入缓存以压掉那 40ms 地板；修正 `PictureController` 里 L1 随机 TTL 未生效与 `localCacheTtl` 未使用这两处。
 
